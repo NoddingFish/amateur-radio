@@ -111,10 +111,9 @@ const { pathToFileURL } = require("node:url");
 
     await open("?mixed=1");
     const mixedNumbers = await page.locator("#question-nav button").allTextContents();
-    await page.locator("#auto-next").uncheck();
-    const answers = await page.evaluate((number) => window.QUESTION_BANK[Number(number) - 1].answers, mixedNumbers[0]);
+    await page.locator("#start-exam").click();
+    const answers = await page.evaluate(() => window.QUESTION_BANK[Number(document.querySelector("#question-nav button").dataset.questionNumber) - 1].answers);
     for (const key of answers) await select(key);
-    if (answers.length > 1) await page.locator("#check-answer").click();
     await press("ArrowRight");
     await page.reload();
     assert.deepEqual(await page.locator("#question-nav button").allTextContents(), mixedNumbers);
@@ -145,7 +144,8 @@ const { pathToFileURL } = require("node:url");
     await page.locator('#question-nav button').filter({ hasText: /^3$/ }).click();
     assert.equal(await position(), "3 / 683");
     const card = await page.locator("#question-card").boundingBox();
-    assert.ok(card.y >= 0 && card.y < 50, "手机选题后回到题目顶部");
+    assert.equal(await page.locator("#practice-navigation").evaluate((dialog) => dialog.open), false);
+    assert.ok(card.y >= 0 && card.y < 844, "手机选题后关闭弹窗并显示题目");
     await page.screenshot({ path: path.join(__dirname, "../tmp/practice/mobile.png") });
 
     const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -174,7 +174,7 @@ const { pathToFileURL } = require("node:url");
     assert.match(await blockedPage.locator("#feedback").innerText(), /回答正确/);
     await blocked.close();
     assert.deepEqual(errors, []);
-    console.log("PASS: 左右键、输入框键盘隔离、单选自动提交、多选回车提交、自动下一题开关与取消、首尾边界、作答与位置持久化、混合题序恢复、练习记录隔离、七种屏宽、手机导航与触屏操作、存储异常降级。");
+    console.log("PASS: 左右键、输入框键盘隔离、单选自动提交、多选回车提交、自动下一题开关与取消、首尾边界、作答与位置持久化、模拟考试恢复、练习记录隔离、七种屏宽、手机导航与触屏操作、存储异常降级。");
   } finally {
     await browser.close();
   }

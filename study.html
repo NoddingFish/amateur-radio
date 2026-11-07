@@ -9,31 +9,42 @@
   <link rel="stylesheet" href="study.css">
   <script src="questions.js" defer></script>
   <script src="study-data.js" defer></script>
+  <script src="layout.js" defer></script>
   <script src="study.js" defer></script>
 </head>
-<body>
+<body class="study-page">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="A 类题库首页"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>无线电练习室<small>AMATEUR RADIO</small></span></a>
     <nav class="header-nav" aria-label="学习方式"><a href="index.html">顺序练习</a><a href="study.html" aria-current="page">分类速记</a></nav>
-    <span class="edition"><span></span>A 类 · 2025 版题库</span>
+    <nav class="utility-nav" aria-label="我的题库"><a href="index.html?exam=1">模拟考试</a><a href="index.html?collection=mistakes">错题本 <span id="mistakes-count">0</span></a><a href="index.html?collection=favorites">我的收藏 <span id="favorites-count">0</span></a></nav>
   </header>
   <div class="study-shell">
     <aside class="study-sidebar" aria-label="知识分类">
       <section class="study-progress"><p class="eyebrow">LEARN THE PATTERN</p><h2>把相似题，一起记。</h2><p><strong id="mastered-count">0</strong> / 70 组已标记掌握</p><progress id="study-progress" value="0" max="70" aria-label="已标记掌握的记忆组"></progress><small id="storage-note">掌握标记保存在当前浏览器。隔日仍能复述，再标记。</small></section>
-      <details id="topic-menu" class="topic-menu" open><summary>选择知识分类 <span>13 个主题 ↓</span></summary><nav id="topic-nav" class="topic-nav" aria-label="13 个学习主题"></nav></details>
-      <a class="mixed-link" href="index.html?mixed=1">混合练习 40 题 <span aria-hidden="true">↗</span><small>32 单选＋8 多选，按正式题型比例</small></a>
+      <button type="button" class="mobile-selector" data-open-dialog="topic-menu" aria-haspopup="dialog" aria-controls="topic-menu">选择知识分类 <span id="current-topic-label">学习概览</span> ☷</button>
+      <dialog id="topic-menu" class="navigation-dialog" aria-labelledby="topic-menu-title">
+        <div class="dialog-heading"><h2 id="topic-menu-title">选择知识分类</h2><button type="button" data-close-dialog aria-label="关闭知识分类">✕</button></div>
+        <nav id="topic-nav" class="topic-nav" aria-label="学习概览与 13 个主题"><button type="button" id="topic-overview" class="topic-button"><span class="topic-ordinal">⌂</span><span><b>学习概览</b><small>学习方法与复习路线</small></span></button></nav>
+      </dialog>
     </aside>
     <main class="study-main">
+      <section id="study-overview" aria-label="学习概览">
       <div class="study-heading"><p class="eyebrow">YOUR A CLASS STUDY GUIDE</p><h1>先记规则，<span>再练变式。</span></h1><p>683 道题，整理成 13 个主题、70 个记忆组。<br>不背选项字母，把每一道相似题背后的判断依据记住。</p><div class="study-facts"><span><b>13</b> 个主题</span><span><b>70</b> 个记忆组</span><span><b>14</b> 天复习路线</span></div></div>
       <p class="exam-strip">A 类标准：<strong>40 题</strong>（32 单选＋8 多选） · <strong>40 分钟</strong> · 答对 <strong>30 题</strong>合格 <a href="https://www.crac.org.cn/userfiles/file/20250728/20250728133610_2877.pdf" target="_blank" rel="noopener">官方标准 ↗</a></p>
       <section class="study-method" aria-label="怎么学"><span>01 <b>先闭卷说</b><small>看自测问题，试着回忆</small></span><span>02 <b>展开核对</b><small>理解规则，比较易混点</small></span><span>03 <b>同组练习</b><small>不只会原句，还会变式</small></span><span>04 <b>隔日再测</b><small>当天、次日、约第 3/7 天</small></span></section>
-      <details class="guide-panel" id="review-plan"><summary><span><b>你的 14 天路线</b><small>每天约 1 小时 · 前 11 天完整覆盖，后 3 天混合检验</small></span><span aria-hidden="true">＋</span></summary><div class="panel-content"><p class="panel-intro">每天约 10 分钟回忆旧组、20 分钟学规则、25 分钟练题、5 分钟复盘。题多时优先保证规则与错因复盘，未完成题顺延。若只有 7–10 天，可合并阅读、减少同日重复，保留全部类别和混合检验。</p><div id="plan-days" class="plan-days"></div><p class="panel-intro">30/40 是合格线；可以将连续两次混合练习达到 36/40 作为复习目标。混合练习按题型抽题、逐题检查，可自行计时 40 分钟检验；本页不预测各类出题概率。</p></div></details>
+      <details class="guide-panel" id="review-plan"><summary><span><b>你的 14 天路线</b><small>每天约 1 小时 · 前 11 天完整覆盖，后 3 天混合检验</small></span><span aria-hidden="true">＋</span></summary><div class="panel-content"><p class="panel-intro">每天约 10 分钟回忆旧组、20 分钟学规则、25 分钟练题、5 分钟复盘。题多时优先保证规则与错因复盘，未完成题顺延。若只有 7–10 天，可合并阅读、减少同日重复，保留全部类别和混合检验。</p><div id="plan-days" class="plan-days"></div><p class="panel-intro">30/40 是合格线；可以将连续两次模拟考试达到 36/40 作为复习目标。模拟考试随机抽取 32 单选＋8 多选，题目和选项均打乱，限时 40 分钟，交卷后统一判分；本页不预测各类出题概率。</p></div></details>
       <details class="guide-panel" id="quick-reference"><summary><span><b>考前对照表</b><small>法规数字、功率权限、分区、Q 简语、按钮、波段、公式</small></span><span aria-hidden="true">＋</span></summary><div class="panel-content" id="quick-tables"></div></details>
       <details class="guide-panel source-panel"><summary><span><b>原题口径核对</b><small>平均值／有效值、SSTV 编码等原文疑点单独区分</small></span><span aria-hidden="true">＋</span></summary><div class="panel-content"><p class="panel-intro">知识点与原题标准选项分开展示。原题与判分数据保留；以下内容不概括成错误的通用规则。</p><ul id="source-cautions"></ul></div></details>
-      <section id="topic-section" aria-labelledby="topic-title">
-        <div class="topic-heading"><div><p class="eyebrow" id="topic-index"></p><h2 id="topic-title"></h2><p id="topic-summary"></p></div><a id="practice-topic" class="secondary-button" href="index.html">练这一类 ↗</a></div>
+      </section>
+      <section id="topic-section" aria-labelledby="topic-title" hidden>
+        <div class="topic-heading"><div><p class="eyebrow" id="topic-index"></p><h2 id="topic-title" tabindex="-1"></h2><p id="topic-summary"></p></div><a id="practice-topic" class="secondary-button" href="index.html">练这一类 ↗</a></div>
         <div class="study-filters"><label class="search-label" for="study-search"><span aria-hidden="true">⌕</span><input type="search" id="study-search" placeholder="搜索全部知识点，如：频偏、QRP、灵敏度"></label><label class="unmastered-label"><input type="checkbox" id="only-unmastered">只看未掌握</label></div>
         <p id="group-result-count" class="group-result-count" aria-live="polite"></p>
+        <button type="button" class="mobile-selector" data-open-dialog="group-menu" aria-haspopup="dialog" aria-controls="group-menu">选择记忆组 <span id="current-group-label">点击选择</span> ☷</button>
+        <dialog id="group-menu" class="navigation-dialog" aria-labelledby="group-menu-title">
+          <div class="dialog-heading"><h2 id="group-menu-title">选择记忆组</h2><button type="button" data-close-dialog aria-label="关闭记忆组选择">✕</button></div>
+          <nav id="group-nav" class="group-nav" aria-label="当前分类的记忆组"></nav>
+        </dialog>
         <div id="knowledge-groups" class="knowledge-groups"></div>
       </section>
       <p class="study-bottom-note">“标记掌握”是自评，不代表已通过测试。应当能遮住选项解释规则，并在隔日练习中做对不同问法。</p>

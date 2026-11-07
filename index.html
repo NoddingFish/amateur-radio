@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="study.css">
   <script src="questions.js" defer></script>
   <script src="study-data.js" defer></script>
+  <script src="layout.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body class="practice-page">
@@ -18,12 +19,13 @@
       <span>无线电练习室<small>AMATEUR RADIO</small></span>
     </a>
     <nav class="header-nav" aria-label="学习方式"><a href="index.html" aria-current="page">顺序练习</a><a href="study.html">分类速记</a></nav>
-    <span class="edition"><span></span>A 类 · 2025 版题库</span>
+    <nav class="utility-nav" aria-label="我的题库"><a href="index.html?exam=1" data-collection="exam">模拟考试</a><a href="index.html?collection=mistakes" data-collection="mistakes">错题本 <span id="mistakes-count">0</span></a><a href="index.html?collection=favorites" data-collection="favorites">我的收藏 <span id="favorites-count">0</span></a></nav>
   </header>
 
   <div class="workspace">
+    <dialog id="practice-navigation" class="navigation-dialog" aria-labelledby="practice-navigation-title">
+      <div class="dialog-heading"><h2 id="practice-navigation-title">题目导航</h2><button type="button" data-close-dialog aria-label="关闭题目导航">✕</button></div>
     <aside id="practice-sidebar" class="sidebar" aria-label="练习进度与题目导航">
-      <a class="mobile-practice-link" href="#question-card">↑ 返回做题</a>
       <section class="progress-card">
         <p class="eyebrow">YOUR PROGRESS</p>
         <h2>今天，再掌握一点。</h2>
@@ -40,17 +42,23 @@
           <button type="submit">跳转 <span aria-hidden="true">↗</span></button>
         </form>
         <div id="question-nav" class="question-grid" aria-label="按顺序选择题目"></div>
-        <div class="legend"><span><i class="dot current"></i>当前</span><span><i class="dot correct"></i>答对</span><span><i class="dot incorrect"></i>答错</span></div>
+        <div class="legend"><span><i class="dot current"></i>当前</span><span><i class="dot correct"></i>答对</span><span><i class="dot incorrect"></i>答错</span><span class="exam-answered-legend"><i class="dot answered"></i>已作答</span></div>
       </section>
       <p class="sidebar-note">循序渐进，每次一题。<br>单选与多选均按原题答案检查。</p>
     </aside>
+    </dialog>
 
     <main>
       <div class="page-heading"><div><p class="eyebrow">A CLASS QUESTION BANK</p><h1>A 类题库<span id="practice-mode">顺序练习</span></h1></div><span class="total-label"><span data-total>683</span> 道题，逐一掌握</span></div>
       <p id="practice-context" class="practice-context" hidden></p>
-      <div class="practice-settings"><label for="auto-next"><input id="auto-next" type="checkbox" checked>提交后自动下一题</label><span class="keyboard-hint">← → 切题 · 回车提交多选</span><a class="mobile-practice-link" href="#practice-sidebar">题目导航 ↓</a></div>
+      <section id="exam-panel" class="exam-panel" aria-label="模拟考试控制" hidden>
+        <div class="exam-toolbar"><div class="exam-clock"><span>剩余时间</span><strong id="exam-timer" role="timer" aria-label="剩余考试时间">40:00</strong></div><p id="exam-status"></p><button id="start-exam" class="primary-button" type="button">开始考试</button><button id="submit-exam" class="primary-button" type="button" hidden>交卷</button><button id="new-exam" class="secondary-button" type="button" hidden>重新组卷</button></div>
+        <p id="exam-result" class="exam-result" role="status" tabindex="-1" hidden></p>
+      </section>
+      <div id="empty-collection" class="empty-collection" tabindex="-1" hidden><h2 id="empty-title"></h2><p id="empty-description"></p><a href="index.html" class="secondary-button">去做题 →</a></div>
+      <div id="practice-settings" class="practice-settings"><label for="auto-next"><input id="auto-next" type="checkbox" checked>提交后自动下一题</label><span class="keyboard-hint">← → 切题 · 回车提交多选</span><button type="button" class="mobile-practice-link" data-open-dialog="practice-navigation" aria-haspopup="dialog" aria-controls="practice-navigation">题目导航 ☷</button></div>
       <article id="question-card" class="question-card" aria-labelledby="question-title">
-        <div class="question-topline"><div class="question-label"><span id="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><span id="chapter-label" class="chapter-label"></span></div>
+        <div class="question-topline"><div class="question-label"><span id="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><div class="question-tools"><span id="chapter-label" class="chapter-label"></span><button id="toggle-favorite" class="favorite-button" type="button" aria-label="收藏本题" aria-pressed="false"><span id="favorite-icon" aria-hidden="true">☆</span><span id="favorite-label">收藏</span></button></div></div>
         <h2 id="question-title" tabindex="-1"></h2>
         <p id="selection-hint" class="selection-hint"></p>
         <p id="image-notice" class="image-notice" hidden></p>
@@ -59,9 +67,9 @@
           <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
           <div class="answer-actions"><button id="check-answer" class="primary-button" disabled>提交答案 <span aria-hidden="true">✓</span></button><button id="retry-answer" class="text-button" hidden>重新作答</button><span id="action-hint">选择选项后提交答案</span></div>
         </div>
-        <div class="source-line"><span id="source-id"></span><span id="source-pages"></span></div>
+        <div class="source-line"><span id="source-id"></span><span id="source-pages"></span><button id="remove-mistake" class="text-button" type="button" hidden>移出错题本</button></div>
       </article>
-      <nav class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button" aria-keyshortcuts="ArrowLeft"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button" aria-keyshortcuts="ArrowRight">下一题 <span aria-hidden="true">→</span></button></nav>
+      <nav id="page-navigation" class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button" aria-keyshortcuts="ArrowLeft"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button" aria-keyshortcuts="ArrowRight">下一题 <span aria-hidden="true">→</span></button></nav>
       <p class="practice-note">多选题须全部选对，漏选或多选均判错。<br><span id="save-status" role="status"></span></p>
     </main>
   </div>

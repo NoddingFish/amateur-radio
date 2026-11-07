@@ -11,7 +11,6 @@
 .study-progress progress { margin: 12px 0; }
 .study-progress small { display: block; font-size: 10px; color: #88957c; line-height: 1.9; }
 .topic-nav { display: grid; gap: 5px; }
-.topic-menu > summary { display: none; }
 .topic-button { display: flex; align-items: center; gap: 11px; border: 1px solid transparent; text-align: left; padding: 11px; border-radius: 10px; background: transparent; color: #768170; width: 100%; }
 .topic-button:hover { background: #edf1e7; }
 .topic-button[aria-current="true"] { background: #fffefa; border-color: #dce4d4; color: var(--green); }
@@ -19,9 +18,6 @@
 .topic-button[aria-current="true"] .topic-ordinal { color: var(--green); }
 .topic-button b { display: block; font-size: 12px; font-weight: 600; line-height: 1.6; }
 .topic-button small { display: block; margin-top: 3px; font-size: 9px; color: #8e9985; }
-.mixed-link { display: block; text-decoration: none; color: var(--green); border: 1px solid #dce4d4; border-radius: 10px; padding: 15px; margin: 18px 0 0; background: #fdfef9; font-size: 12px; }
-.mixed-link > span { float: right; }
-.mixed-link small { display: block; margin-top: 7px; font-size: 10px; color: #8b977e; }
 .study-main { min-width: 0; }
 .study-heading { padding: 6px 0 20px; }
 .study-heading h1 { margin: 0 0 18px; font-size: 34px; font-weight: 650; letter-spacing: -.8px; }
@@ -103,6 +99,11 @@ summary::-webkit-details-marker { display: none; }
 .site-footer a { color: #839173; }
 .practice-context { margin: -7px 0 20px; font-size: 12px; line-height: 1.9; color: #7a8c6f; }
 .practice-context a { color: var(--green); margin-right: 8px; }
+.group-nav { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+.group-tab { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fffefa; color: #718268; text-align: left; font-size: 11px; line-height: 1.6; }
+.group-tab[aria-current="true"] { background: var(--green-light); border-color: #a7c5ad; color: var(--green); }
+.question-range { display: block; font-size: 9px; font-weight: 400; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.group-tab { max-width: 100%; }
 @media (max-width: 1050px) { .study-shell { padding: 30px 24px; gap: 24px; grid-template-columns: 230px minmax(0, 1fr); } .study-method { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; } .study-heading h1 { font-size: 29px; } .knowledge-card { padding: 21px; } .topic-heading h2 { font-size: 21px; } }
 @media (max-width: 760px) {
   .site-header { height: auto; min-height: 82px; flex-wrap: wrap; gap: 16px; padding-top: 18px; padding-bottom: 14px; }
@@ -113,9 +114,6 @@ summary::-webkit-details-marker { display: none; }
   .study-progress { padding: 20px; }
   .study-progress h2 { margin-bottom: 12px; }
   .topic-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
-  .topic-menu > summary { display: flex; justify-content: space-between; font-size: 12px; color: var(--green); background: #fffefa; border: 1px solid var(--border); padding: 15px; border-radius: 9px; list-style: none; }
-  .topic-menu > summary span { font-size: 10px; color: #8a9a7c; }
-  .topic-menu[open] > .topic-nav { margin-top: 10px; }
   .topic-button { padding: 10px 8px; gap: 6px; align-items: start; }
   .topic-ordinal { width: 19px; line-height: 1.8; }
   .topic-button b { font-size: 10px; }
@@ -140,4 +138,51 @@ summary::-webkit-details-marker { display: none; }
   .recall-prompt { font-size: 12px; }
   .rule-list { font-size: 12px; }
   .reference-table th, .reference-table td { font-size: 10px; min-width: 92px; }
+}
+@media (min-width: 761px) {
+  .study-shell { width: 100%; height: 100%; min-height: 0; padding: 20px 28px 16px; gap: 26px; grid-template-columns: 250px minmax(0, 1fr); }
+  .study-sidebar { position: static; max-height: 100%; }
+  .study-progress { padding: 16px 18px; margin-bottom: 12px; }
+  .study-progress h2 { margin-bottom: 12px; font-size: 17px; }
+  .study-progress small { line-height: 1.5; }
+  .topic-button { padding: 7px 10px; gap: 8px; }
+  .topic-button small { margin-top: 1px; }
+  .topic-nav { gap: 3px; }
+  .study-main { max-height: 100%; overflow-y: auto; padding: 2px 6px 2px 2px; scrollbar-gutter: stable; }
+  .study-heading { padding-bottom: 16px; }
+  .study-heading h1 { font-size: 30px; margin-bottom: 12px; }
+  .study-facts { margin-top: 16px; }
+  .study-method { padding: 14px 18px; margin-bottom: 16px; }
+  .exam-strip { padding: 10px 16px; margin-bottom: 16px; }
+  .guide-panel > summary { padding: 13px 18px; }
+  .topic-heading { padding-top: 2px; margin-bottom: 14px; }
+  .topic-heading h2 { font-size: 23px; }
+  .knowledge-card { padding: 20px; }
+  .knowledge-card h3 { font-size: 19px; margin-bottom: 12px; }
+  .study-bottom-note { margin: 14px 0 0; }
+}
+@media (max-width: 1000px) and (min-width: 761px) {
+  .study-shell { padding: 18px 20px; gap: 20px; grid-template-columns: 220px minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .study-page .site-header { min-height: 52px; }
+  .study-page .brand { font-size: 13px; gap: 6px; letter-spacing: 0; }
+  .study-page .brand-icon { width: 28px; height: 28px; border-radius: 9px; }
+  .study-page .brand-icon svg { width: 22px; height: 22px; }
+  .study-page .brand small { display: none; }
+  .study-page .header-nav { width: auto; order: initial; margin-left: auto; gap: 0; }
+  .study-page .header-nav a { min-height: 44px; display: flex; align-items: center; font-size: 11px; padding: 8px; }
+  .study-shell { padding: 14px 12px; gap: 14px; }
+  .study-main { order: 0; }
+  .study-progress { padding: 12px 14px; margin-bottom: 10px; }
+  .study-progress .eyebrow, .study-progress h2, .study-progress small { display: none; }
+  .study-progress > p:not(.eyebrow) { margin: 0; }
+  .study-progress strong { font-size: 20px; }
+  .study-progress progress { margin: 8px 0 0; }
+  .topic-heading { padding-top: 4px; margin-bottom: 14px; }
+  .group-nav { display: grid; margin: 0; }
+  .group-tab { min-height: 44px; }
+  .knowledge-groups { margin-top: 12px; }
+  .topic-button { min-height: 56px; }
+  .study-bottom-note { margin-top: 14px; }
 }
