@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>A 类题库 · 顺序练习</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="questions.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="A 类题库首页">
+      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>无线电练习室<small>AMATEUR RADIO</small></span>
+    </a>
+    <span class="edition"><span></span>A 类 · 2025 版题库</span>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" aria-label="练习进度与题目导航">
+      <section class="progress-card">
+        <p class="eyebrow">YOUR PROGRESS</p>
+        <h2>今天，再掌握一点。</h2>
+        <div class="progress-caption"><span>已检查 <strong id="answered-count">0</strong> / <span data-total>683</span> 题</span><strong id="progress-percent">0%</strong></div>
+        <progress id="progress" value="0" max="683" aria-label="答题进度"></progress>
+        <div class="stats"><div><strong id="correct-count">0</strong><span><i class="dot correct"></i>答对</span></div><div><strong id="incorrect-count">0</strong><span><i class="dot incorrect"></i>答错</span></div><div><strong id="remaining-count">683</strong><span><i class="dot pending"></i>未检查</span></div></div>
+      </section>
+
+      <section class="navigation-card">
+        <div class="section-heading"><h2>题目导航</h2><span>共 <span data-total>683</span> 题</span></div>
+        <form id="jump-form" class="jump-form">
+          <label class="sr-only" for="jump-input">跳转到题号</label>
+          <input id="jump-input" type="number" min="1" max="683" step="1" placeholder="输入题号" required>
+          <button type="submit">跳转 <span aria-hidden="true">↗</span></button>
+        </form>
+        <div id="question-nav" class="question-grid" aria-label="按顺序选择题目"></div>
+        <div class="legend"><span><i class="dot current"></i>当前</span><span><i class="dot correct"></i>答对</span><span><i class="dot incorrect"></i>答错</span></div>
+      </section>
+      <p class="sidebar-note">循序渐进，每次一题。<br>单选与多选均按原题答案检查。</p>
+    </aside>
+
+    <main>
+      <div class="page-heading"><div><p class="eyebrow">A CLASS QUESTION BANK</p><h1>A 类题库<span>顺序练习</span></h1></div><span class="total-label"><span data-total>683</span> 道题，逐一掌握</span></div>
+      <article class="question-card" aria-labelledby="question-title">
+        <div class="question-topline"><div class="question-label"><span id="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><span id="chapter-label" class="chapter-label"></span></div>
+        <h2 id="question-title" tabindex="-1"></h2>
+        <p id="selection-hint" class="selection-hint"></p>
+        <p id="image-notice" class="image-notice" hidden></p>
+        <fieldset id="options" class="options"><legend class="sr-only">选择答案</legend></fieldset>
+        <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+        <div class="answer-actions"><button id="check-answer" class="primary-button" disabled>检查答案 <span aria-hidden="true">✓</span></button><button id="retry-answer" class="text-button" hidden>重新作答</button><span id="action-hint">选择选项后检查答案</span></div>
+        <div class="source-line"><span id="source-id"></span><span id="source-pages"></span></div>
+      </article>
+      <nav class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button">下一题 <span aria-hidden="true">→</span></button></nav>
+      <p class="practice-note">多选题须全部选对，漏选或多选均判错。切换题目会保留本次页面中的作答。</p>
+    </main>
+  </div>
+  <footer class="site-footer">业余无线电台操作技术能力验证 · 题目来源：CRAC 2025 年版 A 类题库</footer>
+  <noscript><p class="noscript-message">请在浏览器中启用 JavaScript 后使用答题功能。</p></noscript>
+</body>
+</html>
