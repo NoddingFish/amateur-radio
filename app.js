@@ -1,8 +1,42 @@
 "use strict";
 
-const questions = window.QUESTION_BANK;
+const allQuestions = window.QUESTION_BANK.map((question, index) => ({ ...question, number: index + 1 }));
+const studyGuide = window.STUDY_GUIDE;
+const params = new URLSearchParams(location.search);
+const selectedGroup = studyGuide.groups.find((group) => group.id === params.get("group"));
+const selectedTopic = studyGuide.topics.find((topic) => topic.id === params.get("topic"));
+const selectedDay = studyGuide.plan.find((day) => day.day === Number(params.get("day")) && day.group_ids.length);
+let questions = allQuestions;
+let practiceTitle = "";
+let practiceReturn = "study.html";
+if (selectedGroup) {
+  const numbers = new Set(selectedGroup.question_numbers);
+  questions = allQuestions.filter((question) => numbers.has(question.number));
+  practiceTitle = `${selectedGroup.title} · ${questions.length} 道同组变式`;
+  practiceReturn = `study.html?topic=${selectedGroup.topic_id}#group-${selectedGroup.id}`;
+} else if (selectedTopic || selectedDay) {
+  const groupIds = selectedTopic ? selectedTopic.group_ids : selectedDay.group_ids;
+  const numbers = new Set(studyGuide.groups.filter((group) => groupIds.includes(group.id)).flatMap((group) => group.question_numbers));
+  questions = allQuestions.filter((question) => numbers.has(question.number));
+  practiceTitle = selectedTopic ? `${selectedTopic.title} · ${questions.length} 题` : `第 ${selectedDay.day} 天：${selectedDay.title} · ${questions.length} 题`;
+  practiceReturn = selectedTopic ? `study.html?topic=${selectedTopic.id}` : "study.html#review-plan";
+} else if (params.get("mixed") === "1") {
+  const shuffle = (items) => {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  };
+  questions = shuffle([
+    ...shuffle(allQuestions.filter((question) => question.answers.length === 1)).slice(0, 32),
+    ...shuffle(allQuestions.filter((question) => question.answers.length > 1)).slice(0, 8),
+  ]);
+  practiceTitle = "混合练习 · 32 单选＋8 多选，逐题检查。可自行计时 40 分钟检验；刷新会重新抽题。";
+}
 const states = questions.map(() => ({ selected: [], checked: false }));
-let currentIndex = 0;
+let currentIndex = Math.max(0, questions.findIndex((question) => question.number === Number(params.get("question"))));
 const $ = (id) => document.getElementById(id);
 const navButtons = [];
 
@@ -34,7 +68,7 @@ function renderNavigation() {
     button.classList.toggle("answered-correct", status === "答对");
     button.classList.toggle("answered-incorrect", status === "答错");
     button.setAttribute("aria-current", String(index === currentIndex));
-    button.setAttribute("aria-label", `第 ${index + 1} 题，${status}`);
+    button.setAttribute("aria-label", `第 ${questions[index].number} 题，${status}`);
   });
 }
 
@@ -42,7 +76,7 @@ function renderQuestion() {
   const question = questions[currentIndex];
   const state = states[currentIndex];
   const multiple = question.answers.length > 1;
-  $("question-number").textContent = `第 ${String(currentIndex + 1).padStart(3, "0")} 题`;
+  $("question-number").textContent = `第 ${String(question.number).padStart(3, "0")} 题`;
   $("question-type").textContent = multiple ? "多选题" : "单选题";
   $("chapter-label").textContent = `知识点 ${question.chapter}`;
   $("question-title").textContent = question.question;
@@ -130,20 +164,33 @@ function goToQuestion(index) {
 questions.forEach((question, index) => {
   const button = document.createElement("button");
   button.type = "button";
-  button.textContent = index + 1;
+  button.textContent = question.number;
   button.addEventListener("click", () => goToQuestion(index));
   navButtons.push(button);
   $("question-nav").append(button);
 });
 document.querySelectorAll("[data-total]").forEach((element) => { element.textContent = questions.length; });
 $("progress").max = questions.length;
-$("jump-input").max = questions.length;
+$("jump-input").max = allQuestions.length;
+$("jump-input").addEventListener("input", () => $("jump-input").setCustomValidity(""));
+if (practiceTitle) {
+  $("practice-mode").textContent = params.get("mixed") === "1" ? "混合练习" : "专题练习";
+  $("practice-context").hidden = false;
+  const back = document.createElement("a");
+  back.href = practiceReturn;
+  back.textContent = "← 返回分类速记";
+  $("practice-context").append(back, document.createTextNode(practiceTitle));
+}
 $("jump-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const number = Number($("jump-input").value);
-  if (Number.isInteger(number) && number >= 1 && number <= questions.length) {
-    goToQuestion(number - 1);
+  const index = questions.findIndex((question) => question.number === number);
+  if (index !== -1) {
+    goToQuestion(index);
     $("jump-input").value = "";
+  } else {
+    $("jump-input").setCustomValidity("当前练习不包含该原题号，可按左侧题目导航选择，或返回全部题库。");
+    $("jump-input").reportValidity();
   }
 });
 $("check-answer").addEventListener("click", () => {
