@@ -11,7 +11,7 @@
   <script src="study-data.js" defer></script>
   <script src="app.js" defer></script>
 </head>
-<body>
+<body class="practice-page">
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="A 类题库首页">
       <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -22,7 +22,8 @@
   </header>
 
   <div class="workspace">
-    <aside class="sidebar" aria-label="练习进度与题目导航">
+    <aside id="practice-sidebar" class="sidebar" aria-label="练习进度与题目导航">
+      <a class="mobile-practice-link" href="#question-card">↑ 返回做题</a>
       <section class="progress-card">
         <p class="eyebrow">YOUR PROGRESS</p>
         <h2>今天，再掌握一点。</h2>
@@ -47,18 +48,21 @@
     <main>
       <div class="page-heading"><div><p class="eyebrow">A CLASS QUESTION BANK</p><h1>A 类题库<span id="practice-mode">顺序练习</span></h1></div><span class="total-label"><span data-total>683</span> 道题，逐一掌握</span></div>
       <p id="practice-context" class="practice-context" hidden></p>
-      <article class="question-card" aria-labelledby="question-title">
+      <div class="practice-settings"><label for="auto-next"><input id="auto-next" type="checkbox" checked>提交后自动下一题</label><span class="keyboard-hint">← → 切题 · 回车提交多选</span><a class="mobile-practice-link" href="#practice-sidebar">题目导航 ↓</a></div>
+      <article id="question-card" class="question-card" aria-labelledby="question-title">
         <div class="question-topline"><div class="question-label"><span id="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><span id="chapter-label" class="chapter-label"></span></div>
         <h2 id="question-title" tabindex="-1"></h2>
         <p id="selection-hint" class="selection-hint"></p>
         <p id="image-notice" class="image-notice" hidden></p>
         <fieldset id="options" class="options"><legend class="sr-only">选择答案</legend></fieldset>
-        <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
-        <div class="answer-actions"><button id="check-answer" class="primary-button" disabled>检查答案 <span aria-hidden="true">✓</span></button><button id="retry-answer" class="text-button" hidden>重新作答</button><span id="action-hint">选择选项后检查答案</span></div>
+        <div class="question-result">
+          <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+          <div class="answer-actions"><button id="check-answer" class="primary-button" disabled>提交答案 <span aria-hidden="true">✓</span></button><button id="retry-answer" class="text-button" hidden>重新作答</button><span id="action-hint">选择选项后提交答案</span></div>
+        </div>
         <div class="source-line"><span id="source-id"></span><span id="source-pages"></span></div>
       </article>
-      <nav class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button">下一题 <span aria-hidden="true">→</span></button></nav>
-      <p class="practice-note">多选题须全部选对，漏选或多选均判错。切换题目会保留本次页面中的作答。</p>
+      <nav class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button" aria-keyshortcuts="ArrowLeft"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button" aria-keyshortcuts="ArrowRight">下一题 <span aria-hidden="true">→</span></button></nav>
+      <p class="practice-note">多选题须全部选对，漏选或多选均判错。<br><span id="save-status" role="status"></span></p>
     </main>
   </div>
   <footer class="site-footer">业余无线电台操作技术能力验证 · 题目来源：CRAC 2025 年版 A 类题库</footer>

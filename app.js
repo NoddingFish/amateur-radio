@@ -6,6 +6,20 @@ const params = new URLSearchParams(location.search);
 const selectedGroup = studyGuide.groups.find((group) => group.id === params.get("group"));
 const selectedTopic = studyGuide.topics.find((topic) => topic.id === params.get("topic"));
 const selectedDay = studyGuide.plan.find((day) => day.day === Number(params.get("day")) && day.group_ids.length);
+const practiceKey = selectedGroup ? `group-${selectedGroup.id}` : selectedTopic ? `topic-${selectedTopic.id}` : selectedDay ? `day-${selectedDay.day}` : params.get("mixed") === "1" ? "mixed" : "all";
+const storageKey = `radio-a-practice-v1-${practiceKey}`;
+const settingsKey = "radio-a-practice-settings-v1";
+let storageAvailable = true;
+function readSaved(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+}
+const saved = readSaved(storageKey);
+let autoNext = readSaved(settingsKey)?.autoNext !== false;
+let autoNextTimer;
 let questions = allQuestions;
 let practiceTitle = "";
 let practiceReturn = "study.html";
@@ -33,12 +47,34 @@ if (selectedGroup) {
     ...shuffle(allQuestions.filter((question) => question.answers.length === 1)).slice(0, 32),
     ...shuffle(allQuestions.filter((question) => question.answers.length > 1)).slice(0, 8),
   ]);
-  practiceTitle = "混合练习 · 32 单选＋8 多选，逐题检查。可自行计时 40 分钟检验；刷新会重新抽题。";
+  const savedQuestions = Array.isArray(saved?.questionNumbers) ? saved.questionNumbers.map((number) => allQuestions.find((question) => question.number === number)) : [];
+  if (savedQuestions.length === 40 && savedQuestions.every(Boolean) && new Set(savedQuestions).size === 40 && savedQuestions.filter((question) => question.answers.length === 1).length === 32) {
+    questions = savedQuestions;
+  }
+  practiceTitle = "混合练习 · 32 单选＋8 多选，逐题检查。可自行计时 40 分钟检验；刷新保留题目与进度。";
 }
-const states = questions.map(() => ({ selected: [], checked: false }));
-let currentIndex = Math.max(0, questions.findIndex((question) => question.number === Number(params.get("question"))));
+const states = questions.map((question) => {
+  const state = saved?.states?.[question.id];
+  const selected = Array.isArray(state?.selected) ? [...new Set(state.selected.filter((key) => Object.hasOwn(question.options, key)))].slice(0, question.answers.length === 1 ? 1 : undefined) : [];
+  return { selected, checked: state?.checked === true && selected.length > 0 };
+});
+let currentIndex = Math.max(0, questions.findIndex((question) => question.number === Number(params.get("question") || saved?.currentQuestion)));
 const $ = (id) => document.getElementById(id);
 const navButtons = [];
+
+function saveProgress() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({
+      questionNumbers: questions.map((question) => question.number),
+      currentQuestion: questions[currentIndex].number,
+      states: Object.fromEntries(questions.map((question, index) => [question.id, states[index]])),
+    }));
+    storageAvailable = true;
+  } catch {
+    storageAvailable = false;
+  }
+  $("save-status").textContent = storageAvailable ? "作答和当前位置已自动保存在当前浏览器。" : "当前浏览器无法保存记录，刷新后可能丢失本次作答。";
+}
 
 function isCorrect(question, selected) {
   return selected.length === question.answers.length && question.answers.every((answer) => selected.includes(answer));
@@ -80,7 +116,7 @@ function renderQuestion() {
   $("question-type").textContent = multiple ? "多选题" : "单选题";
   $("chapter-label").textContent = `知识点 ${question.chapter}`;
   $("question-title").textContent = question.question;
-  $("selection-hint").textContent = multiple ? "请选择所有正确选项，选完后检查答案。" : "请选择一个正确选项，选完后检查答案。";
+  $("selection-hint").textContent = multiple ? "请选择所有正确选项，按回车或点击「提交答案」。" : "请选择一个正确选项，点击后自动提交。";
   $("source-id").textContent = `原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
   $("source-pages").textContent = `来源 PDF 第 ${question.source_pages.join("、")} 页`;
   $("image-notice").hidden = !question.image_files.length;
@@ -110,7 +146,9 @@ function renderQuestion() {
     input.addEventListener("change", () => {
       state.selected = [...options.querySelectorAll("input:checked")].map((item) => item.value);
       $("check-answer").disabled = !state.selected.length;
-      $("action-hint").textContent = state.selected.length ? `已选 ${state.selected.join("、")}` : "选择选项后检查答案";
+      $("action-hint").textContent = state.selected.length ? `已选 ${state.selected.join("、")}` : "选择选项后提交答案";
+      if (multiple) saveProgress();
+      else submitAnswer();
     });
     label.append(letter, content);
     if (state.checked) {
@@ -142,9 +180,9 @@ function renderQuestion() {
     feedback.append(title, detail);
   }
   $("check-answer").disabled = state.checked || !state.selected.length;
-  $("check-answer").firstChild.textContent = state.checked ? "已检查 " : "检查答案 ";
+  $("check-answer").firstChild.textContent = state.checked ? "已提交 " : "提交答案 ";
   $("retry-answer").hidden = !state.checked;
-  $("action-hint").textContent = state.checked ? "可重新作答，或继续下一题" : state.selected.length ? `已选 ${state.selected.join("、")}` : "选择选项后检查答案";
+  $("action-hint").textContent = state.checked ? "可重新作答，或继续下一题" : state.selected.length ? `已选 ${state.selected.join("、")}` : "选择选项后提交答案";
   $("previous-question").disabled = currentIndex === 0;
   $("next-question").disabled = currentIndex === questions.length - 1;
   $("page-position").textContent = `${currentIndex + 1} / ${questions.length}`;
@@ -154,11 +192,32 @@ function renderQuestion() {
 
 function goToQuestion(index) {
   if (index < 0 || index >= questions.length) return;
+  clearTimeout(autoNextTimer);
   currentIndex = index;
+  const url = new URL(location.href);
+  url.searchParams.set("question", questions[index].number);
+  history.replaceState(null, "", url);
+  saveProgress();
   renderQuestion();
   $("question-title").focus({ preventScroll: true });
-  navButtons[index].scrollIntoView({ block: "nearest", inline: "nearest" });
-  if (window.matchMedia("(max-width: 760px)").matches) $("question-number").scrollIntoView({ block: "start" });
+  const nav = $("question-nav");
+  const button = navButtons[index];
+  const offset = button.getBoundingClientRect().top - nav.getBoundingClientRect().top;
+  if (offset < 0) nav.scrollTop += offset;
+  else if (offset + button.offsetHeight > nav.clientHeight) nav.scrollTop += offset + button.offsetHeight - nav.clientHeight;
+  if (window.matchMedia("(max-width: 760px)").matches) $("question-card").scrollIntoView({ block: "start" });
+}
+
+function submitAnswer() {
+  const state = states[currentIndex];
+  if (!state.selected.length || state.checked) return;
+  state.checked = true;
+  saveProgress();
+  renderQuestion();
+  if (autoNext && currentIndex < questions.length - 1) {
+    $("action-hint").textContent = "已提交，即将进入下一题";
+    autoNextTimer = setTimeout(() => goToQuestion(currentIndex + 1), 900);
+  }
 }
 
 questions.forEach((question, index) => {
@@ -193,16 +252,38 @@ $("jump-form").addEventListener("submit", (event) => {
     $("jump-input").reportValidity();
   }
 });
-$("check-answer").addEventListener("click", () => {
-  const state = states[currentIndex];
-  if (!state.selected.length || state.checked) return;
-  state.checked = true;
+$("auto-next").checked = autoNext;
+$("auto-next").addEventListener("change", () => {
+  autoNext = $("auto-next").checked;
+  clearTimeout(autoNextTimer);
+  try {
+    localStorage.setItem(settingsKey, JSON.stringify({ autoNext }));
+  } catch {
+    $("save-status").textContent = "当前浏览器无法保存设置，刷新后将恢复默认设置。";
+  }
   renderQuestion();
 });
+document.addEventListener("keydown", (event) => {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing || event.defaultPrevented) return;
+  const target = event.target;
+  if (target.closest('textarea, select, [contenteditable]:not([contenteditable="false"])') || (target.matches("input") && !target.matches('[name="answer"]'))) return;
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    if (!event.repeat) goToQuestion(currentIndex + (event.key === "ArrowLeft" ? -1 : 1));
+  } else if (event.key === "Enter" && questions[currentIndex].answers.length > 1 && !target.closest("button, a, summary")) {
+    event.preventDefault();
+    if (!event.repeat) submitAnswer();
+  }
+});
+$("check-answer").addEventListener("click", submitAnswer);
 $("retry-answer").addEventListener("click", () => {
+  clearTimeout(autoNextTimer);
   states[currentIndex] = { selected: [], checked: false };
+  saveProgress();
   renderQuestion();
 });
 $("previous-question").addEventListener("click", () => goToQuestion(currentIndex - 1));
 $("next-question").addEventListener("click", () => goToQuestion(currentIndex + 1));
 renderQuestion();
+saveProgress();
+if (window.matchMedia("(max-width: 760px)").matches && !location.hash) $("question-card").scrollIntoView({ block: "start" });
