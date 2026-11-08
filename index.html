@@ -4,76 +4,51 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>A 类题库 · 顺序练习</title>
+  <title>A 类题库 · 无线电练习室</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="study.css">
   <script src="questions.js" defer></script>
   <script src="study-data.js" defer></script>
-  <script src="layout.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="icons.js" defer></script>
+  <script src="home.js" defer></script>
 </head>
-<body class="practice-page">
+<body class="home-page">
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="A 类题库首页">
-      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <span>无线电练习室<small>AMATEUR RADIO</small></span>
-    </a>
-    <nav class="header-nav" aria-label="学习方式"><a href="index.html" aria-current="page">顺序练习</a><a href="study.html">分类速记</a></nav>
-    <nav class="utility-nav" aria-label="我的题库"><a href="index.html?exam=1" data-collection="exam">模拟考试</a><a href="index.html?collection=mistakes" data-collection="mistakes">错题本 <span id="mistakes-count">0</span></a><a href="index.html?collection=favorites" data-collection="favorites">我的收藏 <span id="favorites-count">0</span></a></nav>
+    <a class="brand" href="index.html" aria-label="A 类题库首页"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>无线电练习室<small>AMATEUR RADIO</small></span></a>
   </header>
-
-  <div class="workspace">
-    <dialog id="practice-navigation" class="navigation-dialog" aria-labelledby="practice-navigation-title">
-      <div class="dialog-heading"><h2 id="practice-navigation-title">题目导航</h2><button type="button" data-close-dialog aria-label="关闭题目导航">✕</button></div>
-    <aside id="practice-sidebar" class="sidebar" aria-label="练习进度与题目导航">
-      <section class="progress-card">
-        <p class="eyebrow">YOUR PROGRESS</p>
-        <h2>今天，再掌握一点。</h2>
-        <div class="progress-caption"><span>已检查 <strong id="answered-count">0</strong> / <span data-total>683</span> 题</span><strong id="progress-percent">0%</strong></div>
-        <progress id="progress" value="0" max="683" aria-label="答题进度"></progress>
-        <div class="stats"><div><strong id="correct-count">0</strong><span><i class="dot correct"></i>答对</span></div><div><strong id="incorrect-count">0</strong><span><i class="dot incorrect"></i>答错</span></div><div><strong id="remaining-count">683</strong><span><i class="dot pending"></i>未检查</span></div></div>
+  <main class="library-main">
+    <section id="home-panel" aria-labelledby="home-title">
+      <div class="home-heading"><p class="eyebrow">AMATEUR RADIO · CLASS A</p><h1 id="home-title">A 类题库</h1><p>从记住规则，到独立做对。</p><span>CRAC 2025 年版 · 683 道题 · 70 个记忆组</span></div>
+      <section class="home-dashboard" aria-label="学习进度">
+        <section class="progress-card" aria-labelledby="practice-progress-title">
+          <div class="dashboard-heading"><span class="dashboard-icon" data-icon="book"></span><h2 id="practice-progress-title">顺序练习进度</h2><strong id="progress-percent">0%</strong></div>
+          <div class="progress-caption"><span>已检查 <strong id="answered-count">0</strong> / 683 题</span><span>每做一题，都更进一步</span></div>
+          <progress id="progress" value="0" max="683" aria-label="顺序练习进度"></progress>
+          <div class="stats"><div><strong id="correct-count">0</strong><span><i class="dot correct"></i>答对</span></div><div><strong id="incorrect-count">0</strong><span><i class="dot incorrect"></i>答错</span></div><div><strong id="remaining-count">683</strong><span><i class="dot pending"></i>未检查</span></div></div>
+        </section>
+        <section class="progress-card mastery-card" aria-labelledby="study-progress-title">
+          <div class="dashboard-heading"><span class="dashboard-icon" data-icon="layers"></span><h2 id="study-progress-title">分类速记进度</h2><strong id="mastered-percent">0%</strong></div>
+          <div class="progress-caption"><span>已掌握 <strong id="mastered-count">0</strong> / 70 组</span><span id="mastery-remaining">还剩 70 组</span></div>
+          <progress id="study-progress" value="0" max="70" aria-label="已掌握的记忆组"></progress>
+          <p class="mastery-note">掌握标记来自分类速记中的自评。<br>隔日仍能复述，再标记掌握。</p>
+        </section>
       </section>
-
-      <section class="navigation-card">
-        <div class="section-heading"><h2>题目导航</h2><span>共 <span data-total>683</span> 题</span></div>
-        <form id="jump-form" class="jump-form">
-          <label class="sr-only" for="jump-input">跳转到题号</label>
-          <input id="jump-input" type="number" min="1" max="683" step="1" placeholder="输入题号" required>
-          <button type="submit">跳转 <span aria-hidden="true">↗</span></button>
-        </form>
-        <div id="question-nav" class="question-grid" aria-label="按顺序选择题目"></div>
-        <div class="legend"><span><i class="dot current"></i>当前</span><span><i class="dot correct"></i>答对</span><span><i class="dot incorrect"></i>答错</span><span class="exam-answered-legend"><i class="dot answered"></i>已作答</span></div>
-      </section>
-      <p class="sidebar-note">循序渐进，每次一题。<br>单选与多选均按原题答案检查。</p>
-    </aside>
-    </dialog>
-
-    <main>
-      <div class="page-heading"><div><p class="eyebrow">A CLASS QUESTION BANK</p><h1>A 类题库<span id="practice-mode">顺序练习</span></h1></div><span class="total-label"><span data-total>683</span> 道题，逐一掌握</span></div>
-      <p id="practice-context" class="practice-context" hidden></p>
-      <section id="exam-panel" class="exam-panel" aria-label="模拟考试控制" hidden>
-        <div class="exam-toolbar"><div class="exam-clock"><span>剩余时间</span><strong id="exam-timer" role="timer" aria-label="剩余考试时间">40:00</strong></div><p id="exam-status"></p><button id="start-exam" class="primary-button" type="button">开始考试</button><button id="submit-exam" class="primary-button" type="button" hidden>交卷</button><button id="new-exam" class="secondary-button" type="button" hidden>重新组卷</button></div>
-        <p id="exam-result" class="exam-result" role="status" tabindex="-1" hidden></p>
-      </section>
-      <div id="empty-collection" class="empty-collection" tabindex="-1" hidden><h2 id="empty-title"></h2><p id="empty-description"></p><a href="index.html" class="secondary-button">去做题 →</a></div>
-      <div id="practice-settings" class="practice-settings"><label for="auto-next"><input id="auto-next" type="checkbox" checked>提交后自动下一题</label><span class="keyboard-hint">← → 切题 · 回车提交多选</span><button type="button" class="mobile-practice-link" data-open-dialog="practice-navigation" aria-haspopup="dialog" aria-controls="practice-navigation">题目导航 ☷</button></div>
-      <article id="question-card" class="question-card" aria-labelledby="question-title">
-        <div class="question-topline"><div class="question-label"><span id="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><div class="question-tools"><span id="chapter-label" class="chapter-label"></span><button id="toggle-favorite" class="favorite-button" type="button" aria-label="收藏本题" aria-pressed="false"><span id="favorite-icon" aria-hidden="true">☆</span><span id="favorite-label">收藏</span></button></div></div>
-        <h2 id="question-title" tabindex="-1"></h2>
-        <p id="selection-hint" class="selection-hint"></p>
-        <p id="image-notice" class="image-notice" hidden></p>
-        <fieldset id="options" class="options"><legend class="sr-only">选择答案</legend></fieldset>
-        <div class="question-result">
-          <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
-          <div class="answer-actions"><button id="check-answer" class="primary-button" disabled>提交答案 <span aria-hidden="true">✓</span></button><button id="retry-answer" class="text-button" hidden>重新作答</button><span id="action-hint">选择选项后提交答案</span></div>
-        </div>
-        <div class="source-line"><span id="source-id"></span><span id="source-pages"></span><button id="remove-mistake" class="text-button" type="button" hidden>移出错题本</button></div>
-      </article>
-      <nav id="page-navigation" class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button" aria-keyshortcuts="ArrowLeft"><span aria-hidden="true">←</span> 上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button" aria-keyshortcuts="ArrowRight">下一题 <span aria-hidden="true">→</span></button></nav>
-      <p class="practice-note">多选题须全部选对，漏选或多选均判错。<br><span id="save-status" role="status"></span></p>
-    </main>
-  </div>
+      <nav class="entry-grid" aria-label="选择学习入口">
+        <a class="entry-card entry-primary" href="practice.html"><span class="entry-number"><span data-icon="book"></span>01 / PRACTICE</span><h2>顺序练习 <span data-icon="next"></span></h2><p>按题号逐一练习，随时查看解题提示。</p><small id="home-progress">继续上次练习</small></a>
+        <a class="entry-card" href="index.html?view=groups"><span class="entry-number"><span data-icon="layers"></span>02 / STUDY</span><h2>分类速记 <span data-icon="next"></span></h2><p>相似题放在一起记，先学口诀，再练变式。</p><small>13 个主题 · 70 个记忆组</small></a>
+        <a class="entry-card" href="practice.html?collection=mistakes"><span class="entry-number"><span data-icon="refresh"></span>03 / REVIEW</span><h2>错题本 <span data-icon="next"></span></h2><p>重做答错的题，找到反复混淆的知识点。</p><small><span id="mistakes-count">0</span> 道待复习</small></a>
+        <a class="entry-card" href="practice.html?collection=favorites"><span class="entry-number"><span data-icon="bookmark"></span>04 / FAVORITES</span><h2>我的收藏 <span data-icon="next"></span></h2><p>留下值得再看的题，集中练习。</p><small><span id="favorites-count">0</span> 道已收藏</small></a>
+        <a class="entry-card" href="practice.html?exam=1"><span class="entry-number"><span data-icon="timer"></span>05 / EXAM</span><h2>模拟考试 <span data-icon="next"></span></h2><p>随机组卷、限时作答，交卷后统一复盘。</p><small>40 题 · 40 分钟 · 答对 30 题合格</small></a>
+      </nav>
+    </section>
+    <section id="library-panel" aria-labelledby="library-title" hidden>
+      <a id="library-back" class="back-to-list" href="index.html"><span data-icon="back"></span>返回首页</a>
+      <div class="library-heading"><div><p class="eyebrow">YOUR QUESTION LIBRARY</p><h1 id="library-title"></h1><p id="library-description"></p></div></div>
+      <div id="library-list" class="library-list"></div>
+    </section>
+    <p id="home-storage-note" class="practice-note" role="status"></p>
+  </main>
   <footer class="site-footer">业余无线电台操作技术能力验证 · 题目来源：CRAC 2025 年版 A 类题库</footer>
-  <noscript><p class="noscript-message">请在浏览器中启用 JavaScript 后使用答题功能。</p></noscript>
+  <noscript><p class="noscript-message">请启用 JavaScript，或阅读 <a href="A类考试_分类速记.md">文字版分类速记</a>。</p></noscript>
 </body>
 </html>

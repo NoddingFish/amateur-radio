@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>A 类题库 · 顺序练习</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="study.css">
+  <script src="questions.js" defer></script>
+  <script src="study-data.js" defer></script>
+  <script src="icons.js" defer></script>
+  <script src="layout.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body class="practice-page">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="A 类题库首页">
+      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>无线电练习室<small>AMATEUR RADIO</small></span>
+    </a>
+    <div class="practice-header-context"><h1>A 类题库 · <span id="practice-mode">顺序练习</span></h1><p id="practice-context" class="practice-context" hidden></p></div>
+    <a id="back-to-list" class="icon-action" href="index.html" aria-label="返回首页" title="返回首页"><span data-icon="back"></span></a>
+  </header>
+
+  <div class="workspace">
+    <dialog id="practice-navigation" class="navigation-dialog" aria-labelledby="practice-navigation-title">
+      <div class="dialog-heading"><h2 id="practice-navigation-title">题目导航</h2><button type="button" data-close-dialog aria-label="关闭题目导航"><span data-icon="close"></span></button></div>
+    <aside id="practice-sidebar" class="sidebar" aria-label="练习进度与题目导航">
+      <section class="navigation-card">
+        <div class="section-heading"><h2>题目导航</h2><span>共 <span data-total>683</span> 题</span></div>
+        <p class="navigation-status"><span id="navigation-status-label">已检查</span> <strong id="answered-count">0</strong> / <span data-total>683</span> 题</p>
+        <form id="jump-form" class="jump-form">
+          <label class="sr-only" for="jump-input">跳转到题号</label>
+          <input id="jump-input" type="number" min="1" max="683" step="1" placeholder="输入题号" required>
+          <button type="submit">跳转 <span data-icon="jump"></span></button>
+        </form>
+        <div id="question-nav" class="question-grid" aria-label="按顺序选择题目"></div>
+        <div class="legend"><span><i class="dot current"></i>当前</span><span><i class="dot correct"></i>答对</span><span><i class="dot incorrect"></i>答错</span><span class="exam-answered-legend"><i class="dot answered"></i>已作答</span></div>
+      </section>
+      <p class="sidebar-note keyboard-hint">方向键切题 · 回车提交多选</p>
+    </aside>
+    </dialog>
+
+    <main>
+      <section id="exam-panel" class="exam-panel" aria-label="模拟考试控制" hidden>
+        <div class="exam-toolbar"><div class="exam-clock"><span>剩余时间</span><strong id="exam-timer" role="timer" aria-label="剩余考试时间">40:00</strong></div><p id="exam-status"></p><button id="start-exam" class="primary-button" type="button">开始考试</button><button id="submit-exam" class="primary-button" type="button" hidden>交卷</button><button id="new-exam" class="secondary-button" type="button" hidden>重新组卷</button></div>
+        <p id="exam-result" class="exam-result" role="status" tabindex="-1" hidden></p>
+      </section>
+      <div id="empty-collection" class="empty-collection" tabindex="-1" hidden><h2 id="empty-title"></h2><p id="empty-description"></p><a href="practice.html" class="secondary-button">去做题 <span data-icon="next"></span></a></div>
+      <div id="question-stage" class="question-stage">
+      <article id="question-card" class="question-card" aria-labelledby="question-title">
+        <div class="question-topline"><div class="question-label"><button id="open-question-navigation" class="icon-action" type="button" data-open-dialog="practice-navigation" aria-label="题目导航" title="题目导航" aria-haspopup="dialog" aria-controls="practice-navigation"><span data-icon="menu"></span></button><span id="question-number" class="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><div class="question-tools"><button id="toggle-hint" class="icon-action" type="button" aria-label="查看本题提示" title="查看本题提示" aria-haspopup="dialog" aria-controls="hint-dialog"><span data-icon="hint"></span></button><button id="toggle-favorite" class="icon-action favorite-action" type="button" aria-label="收藏本题" title="收藏本题" aria-pressed="false"><span id="favorite-icon" data-icon="star"></span></button></div></div>
+        <h2 id="question-title" class="question-title" tabindex="-1"></h2>
+        <p id="selection-hint" class="selection-hint"></p>
+        <div id="question-images" class="question-images" hidden></div>
+        <fieldset id="options" class="options"><legend class="sr-only">选择答案</legend></fieldset>
+        <div class="question-result">
+          <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+          <div class="answer-actions"><button id="check-answer" class="primary-button check-answer" disabled>提交答案 <span data-icon="check"></span></button><button id="retry-answer" class="text-button retry-answer" hidden><span data-icon="refresh"></span>重新作答</button><span id="action-hint" class="action-hint">选择选项后提交答案</span></div>
+        </div>
+        <div class="source-line"><span id="source-id"></span><span id="source-pages"></span><button id="remove-mistake" class="text-button remove-mistake" type="button" hidden>移出错题本</button></div>
+      </article>
+      </div>
+      <nav id="page-navigation" class="page-navigation" aria-label="上一题与下一题"><button id="previous-question" class="secondary-button" aria-keyshortcuts="ArrowLeft"><span data-icon="back"></span>上一题</button><span id="page-position">1 / 683</span><button id="next-question" class="secondary-button" aria-keyshortcuts="ArrowRight">下一题<span data-icon="next"></span></button></nav>
+      <p class="practice-note"><span class="swipe-hint">左滑下一题 · 右滑上一题</span>多选题须全部选对，漏选或多选均判错。<br><span id="save-status" role="status"></span></p>
+    </main>
+  </div>
+  <dialog id="hint-dialog" class="hint-dialog" aria-labelledby="hint-dialog-title">
+    <div class="dialog-heading"><h2 id="hint-dialog-title">本题提示</h2><button id="close-hint" type="button" data-close-dialog aria-label="关闭提示"><span data-icon="close"></span></button></div>
+    <section id="question-hint" class="question-hint" aria-labelledby="hint-title"></section>
+  </dialog>
+  <footer class="site-footer">业余无线电台操作技术能力验证 · 题目来源：CRAC 2025 年版 A 类题库</footer>
+  <noscript><p class="noscript-message">请在浏览器中启用 JavaScript 后使用答题功能。</p></noscript>
+</body>
+</html>

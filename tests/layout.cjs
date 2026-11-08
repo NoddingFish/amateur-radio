@@ -7,7 +7,9 @@ const { pathToFileURL } = require("node:url");
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.RADIO_BROWSER_PATH || undefined });
   try {
-    const page = await browser.newPage();
+    const page = await browser.newPage({ reducedMotion: "reduce" });
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     const open = (file) => page.goto(pathToFileURL(path.join(__dirname, "..", file.split("?")[0])).href + (file.includes("?") ? `?${file.split("?")[1]}` : ""));
@@ -18,10 +20,12 @@ const { pathToFileURL } = require("node:url");
     fs.mkdirSync(path.join(__dirname, "../tmp/layout"), { recursive: true });
     for (const [width, height] of [[1366, 768], [1440, 900], [1920, 1080], [1000, 768], [768, 900]]) {
       await page.setViewportSize({ width, height });
-      await open("index.html?question=3");
-      await page.locator("#auto-next").uncheck();
+      await open("practice.html?question=3");
       assert.equal(await fits("#page-navigation"), true, `桌面切题操作应在屏幕内 ${width}`);
-      assert.equal(await fits("#practice-sidebar"), true, `桌面左侧导航应在屏幕内 ${width}`);
+      assert.equal(await page.locator("#practice-sidebar").isHidden(), true, `桌面默认只展示题目 ${width}`);
+      await page.locator("#open-question-navigation").click();
+      assert.equal(await fits("#practice-navigation"), true, `导航弹窗应在屏幕内 ${width}`);
+      await page.keyboard.press("Escape");
       assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight), false, `桌面不应整页纵向溢出 ${width}`);
       await page.locator('#options input[value="A"]').check();
       assert.equal(await fits("#page-navigation"), true, `提交后仍可直接切题 ${width}`);
@@ -42,7 +46,7 @@ const { pathToFileURL } = require("node:url");
     }
     for (const [width, height] of [[320, 568], [375, 667], [390, 844], [760, 900]]) {
       await page.setViewportSize({ width, height });
-      await open("index.html?question=3");
+      await open("practice.html?question=3");
       assert.equal(await page.locator("#practice-sidebar").isHidden(), true);
       await page.locator('[data-open-dialog="practice-navigation"]').click();
       assert.equal(await page.locator("#practice-navigation").evaluate((node) => node.matches(":modal")), true);
@@ -70,6 +74,7 @@ const { pathToFileURL } = require("node:url");
         await page.locator('[data-open-dialog="group-menu"]').click();
         await page.screenshot({ path: path.join(__dirname, "../tmp/layout/group-dialog-mobile.png") });
         await page.setViewportSize({ width: 1366, height: 768 });
+        await page.waitForFunction(() => !document.querySelector("#group-menu").open);
         assert.equal(await page.locator("#group-menu").evaluate((node) => node.open), false);
       }
     }

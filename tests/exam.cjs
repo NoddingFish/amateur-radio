@@ -7,12 +7,14 @@ const { pathToFileURL } = require("node:url");
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.RADIO_BROWSER_PATH || undefined });
   try {
-    const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+    const page = await browser.newPage({ reducedMotion: "reduce", viewport: { width: 1366, height: 768 } });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    const url = pathToFileURL(path.join(__dirname, "../index.html")).href;
+    const url = pathToFileURL(path.join(__dirname, "../practice.html")).href;
     const record = () => page.evaluate(() => JSON.parse(localStorage.getItem("radio-a-exam-v1")));
+    const mistakeCount = () => page.evaluate(() => String(JSON.parse(localStorage.getItem("radio-a-collections-v1")).mistakes.length));
     const jump = async (index) => {
+      await page.locator("#open-question-navigation").click();
       await page.locator("#jump-input").fill(String(index + 1));
       await page.locator("#jump-form button").click();
     };
@@ -29,7 +31,7 @@ const { pathToFileURL } = require("node:url");
     assert.equal(questions.filter((question) => question.answers.length > 1).length, 8);
     assert.ok(questions.some((question) => paper.states[question.id].optionOrder.join("") !== Object.keys(question.options).join("")), "试卷应打乱选项内容");
     await page.locator("#start-exam").click();
-    assert.equal(await page.locator("#auto-next").isHidden(), true);
+    assert.equal(await page.locator("#auto-next").count(), 0);
     const deadline = (await record()).exam.deadline;
     for (let index = 0; index < questions.length; index++) {
       await jump(index);
@@ -51,7 +53,7 @@ const { pathToFileURL } = require("node:url");
     assert.deepEqual(Object.values(restored.states).map((state) => state.optionOrder), Object.values(paper.states).map((state) => state.optionOrder));
     assert.equal(restored.exam.deadline, deadline, "刷新不得延长考试时间");
     assert.equal(await page.locator("#answered-count").innerText(), "40");
-    assert.equal(await page.locator(".stats").isHidden(), true);
+    assert.equal(await page.locator("progress").count(), 0, "考试页不显示首页的进度卡");
     await page.locator("#submit-exam").click();
     assert.match(await page.locator("#exam-result").innerText(), /40 \/ 40 · 合格/);
     assert.equal(await page.locator("#options input:enabled").count(), 0);
@@ -85,14 +87,14 @@ const { pathToFileURL } = require("node:url");
     await page.locator('#options input[value="B"]').check();
     assert.equal(await page.locator("#options input:checked").count(), 1, "单选可修改答案");
     assert.equal(await page.locator("#page-navigation").evaluate((node) => node.getBoundingClientRect().bottom <= node.parentElement.getBoundingClientRect().bottom), true, "桌面常规考题的切题按钮应在屏幕内");
-    assert.equal(await page.locator("#mistakes-count").innerText(), "0", "交卷前不收录或泄露错题");
+    assert.equal(await mistakeCount(), "0", "交卷前不收录或泄露错题");
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.locator("#submit-exam").click();
     assert.equal(await page.locator("#exam-result").isHidden(), true, "可取消提前交卷");
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#submit-exam").click();
     assert.match(await page.locator("#exam-result").innerText(), /30 \/ 40 · 合格 · 错题 10 题（含未答 8 题）/);
-    assert.equal(await page.locator("#mistakes-count").innerText(), "10");
+    assert.equal(await mistakeCount(), "10");
     await jump(0);
     assert.match(await page.locator("#feedback").innerText(), /回答错误/, "多选漏选判错");
     await jump(1);
@@ -100,7 +102,7 @@ const { pathToFileURL } = require("node:url");
     assert.equal(await page.locator(".option.is-wrong .option-letter").innerText(), "C", "误选字母使用打乱后的显示位置");
     await page.reload();
     assert.match(await page.locator("#exam-result").innerText(), /30 \/ 40 · 合格/);
-    assert.equal(await page.locator("#mistakes-count").innerText(), "10");
+    assert.equal(await mistakeCount(), "10");
     await page.locator("#new-exam").click();
     assert.equal(await page.locator("#start-exam").isVisible(), true);
     assert.equal(await page.locator("#answered-count").innerText(), "0");
@@ -134,7 +136,6 @@ const { pathToFileURL } = require("node:url");
 
     // 普通单选、多选误选均应显示红底，不能被选中、悬停样式覆盖。
     await page.goto(`${url}?question=3`);
-    await page.locator("#auto-next").uncheck();
     await page.locator('#options input[value="B"]').check();
     await page.waitForFunction(() => getComputedStyle(document.querySelector(".option.is-wrong")).backgroundColor === "rgb(251, 227, 223)");
     await page.goto(`${url}?question=1`);

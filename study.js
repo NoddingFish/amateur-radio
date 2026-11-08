@@ -45,20 +45,7 @@ function topicQuestionRange(topic) {
   return questionRange(guide.groups.filter((group) => group.topic_id === topic.id).flatMap((group) => group.question_numbers));
 }
 
-function updateCollectionCounts() {
-  let collections;
-  try { collections = JSON.parse(localStorage.getItem("radio-a-collections-v1") || "null"); }
-  catch { collections = null; }
-  const validIds = new Set(bank.map((question) => question.id));
-  ["mistakes", "favorites"].forEach((name) => {
-    const ids = Array.isArray(collections?.[name]) ? collections[name] : [];
-    byId(`${name}-count`).textContent = new Set(ids.filter((id) => validIds.has(id))).size;
-  });
-}
-
 function updateProgress() {
-  byId("mastered-count").textContent = mastered.size;
-  byId("study-progress").value = mastered.size;
   if (!storageAvailable) byId("storage-note").textContent = "当前浏览器暂不能保存标记；本次页面内仍可使用。";
   guide.topics.forEach((topic) => {
     const button = byId(`topic-${topic.id}`);
@@ -88,7 +75,9 @@ function renderGroup(group) {
   card.append(element("h3", "", group.title));
   card.append(element("p", "recall-prompt", `先不看答案：${group.recall_question}`));
   const details = element("details", "knowledge-details");
-  details.append(element("summary", "", "展开核对与核心规则 ↓"));
+  const summary = element("summary", "", "展开核对与核心规则");
+  summary.append(window.radioIcon("down"));
+  details.append(summary);
   details.append(element("p", "recall-answer", `核对：${group.recall_answer}`));
   details.append(element("p", "mnemonic", `记忆线索｜${group.mnemonic}`));
   const rules = element("ul", "rule-list");
@@ -99,21 +88,31 @@ function renderGroup(group) {
   group.question_numbers.forEach((number) => {
     const question = bank[number - 1];
     const item = element("div", "source-question");
-    const link = element("a", "", `第 ${number} 题 · ${question.id} ↗`);
-    link.href = `index.html?group=${group.id}&question=${number}`;
+    const link = element("a", "", `第 ${number} 题 · ${question.id}`);
+    link.append(window.radioIcon("external"));
+    link.href = `practice.html?group=${group.id}&question=${number}`;
     const answers = element("ol", "");
     question.answers.forEach((key) => answers.append(element("li", "", question.options[key])));
-    item.append(link, element("p", "", question.question), element("strong", "", "题库标准选项内容："), answers);
+    item.append(link, element("p", "", question.question));
+    question.image_files.forEach((file) => {
+      const image = document.createElement("img");
+      image.className = "question-image";
+      image.src = `images/${file}`;
+      image.alt = `第 ${number} 题配图`;
+      item.append(image);
+    });
+    item.append(element("strong", "", "题库标准选项内容："), answers);
     sources.append(item);
   });
   details.append(sources);
   const actions = element("div", "group-actions");
-  const practice = element("a", "group-practice", `练本组 ${group.question_numbers.length} 题 ↗`);
-  practice.href = `index.html?group=${group.id}`;
+  const practice = element("a", "group-practice", `练本组 ${group.question_numbers.length} 题`);
+  practice.append(window.radioIcon("external"));
+  practice.href = `practice.html?group=${group.id}`;
   const mark = element("button", "master-button");
   mark.type = "button";
   function setMark() {
-    mark.textContent = mastered.has(group.id) ? "✓ 已标记掌握" : "标记已掌握";
+    mark.replaceChildren(window.radioIcon("check"), document.createTextNode(mastered.has(group.id) ? "已标记掌握" : "标记已掌握"));
     mark.setAttribute("aria-pressed", String(mastered.has(group.id)));
     card.classList.toggle("is-mastered", mastered.has(group.id));
   }
@@ -133,6 +132,7 @@ function renderGroup(group) {
 }
 
 function renderGroups() {
+  byId("study-back").href = `index.html?view=groups${currentTopic ? `&topic=${currentTopic.id}` : ""}`;
   byId("study-overview").hidden = Boolean(currentTopic);
   byId("topic-section").hidden = !currentTopic;
   if (!currentTopic) return;
@@ -146,7 +146,7 @@ function renderGroups() {
   byId("topic-title").textContent = search ? `搜索：${byId("study-search").value.trim()}` : currentTopic.title;
   byId("topic-summary").textContent = search ? "在全部 70 个记忆组中查找，结果保留所属主题。" : currentTopic.summary;
   byId("practice-topic").hidden = Boolean(search);
-  byId("practice-topic").href = `index.html?topic=${currentTopic.id}`;
+  byId("practice-topic").href = `practice.html?topic=${currentTopic.id}`;
   byId("group-result-count").textContent = `${groups.length} 个记忆组 · ${groups.reduce((total, group) => total + group.question_numbers.length, 0)} 道题${pendingOnly ? " · 仅显示未掌握" : ""}`;
   const container = byId("knowledge-groups");
   container.replaceChildren();
@@ -197,8 +197,9 @@ guide.plan.forEach((day) => {
   const row = element("div", "plan-day");
   const content = element("div", "");
   content.append(element("h3", "", day.title), element("p", "", day.task));
-  const link = element("a", "", day.question_count ? `练 ${day.question_count} 题 ↗` : "模拟考试 40 题 ↗");
-  link.href = day.group_ids.length ? `index.html?day=${day.day}` : "index.html?exam=1";
+  const link = element("a", "", day.question_count ? `练 ${day.question_count} 题` : "模拟考试 40 题");
+  link.append(window.radioIcon("external"));
+  link.href = day.group_ids.length ? `practice.html?day=${day.day}` : "practice.html?exam=1";
   row.append(element("b", "", `DAY ${String(day.day).padStart(2, "0")}`), content, link);
   byId("plan-days").append(row);
 });
@@ -231,7 +232,7 @@ guide.quick_tables.forEach((reference) => {
 guide.source_cautions.forEach((issue) => {
   const item = element("li", "");
   const link = element("a", "", `第 ${issue.question_numbers.join("、")} 题`);
-  link.href = `index.html?group=${issue.group_id}&question=${issue.question_numbers[0]}`;
+  link.href = `practice.html?group=${issue.group_id}&question=${issue.question_numbers[0]}`;
   item.append(link, document.createTextNode(`：${issue.detail}`));
   byId("source-cautions").append(item);
 });
@@ -239,7 +240,5 @@ byId("study-search").addEventListener("input", renderGroups);
 byId("only-unmastered").addEventListener("change", renderGroups);
 renderGroups();
 updateProgress();
-updateCollectionCounts();
-window.addEventListener("pageshow", updateCollectionCounts);
 if (location.hash === "#review-plan") byId("review-plan").open = true;
 if (location.hash.startsWith("#group-")) document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start" });

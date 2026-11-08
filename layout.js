@@ -7,7 +7,7 @@ document.querySelectorAll("[data-open-dialog]").forEach((button) => {
     dialog.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
   });
 });
-document.querySelectorAll(".navigation-dialog").forEach((dialog) => {
+document.querySelectorAll(".navigation-dialog, .hint-dialog").forEach((dialog) => {
   dialog.querySelector("[data-close-dialog]").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", (event) => {
     if (event.target !== dialog) return;

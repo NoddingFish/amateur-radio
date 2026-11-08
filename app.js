@@ -2,6 +2,7 @@
 
 const allQuestions = window.QUESTION_BANK.map((question, index) => ({ ...question, number: index + 1 }));
 const studyGuide = window.STUDY_GUIDE;
+const hintGroups = new Map(studyGuide.groups.flatMap((group) => group.question_numbers.map((number) => [number, group])));
 const params = new URLSearchParams(location.search);
 const selectedGroup = studyGuide.groups.find((group) => group.id === params.get("group"));
 const selectedTopic = studyGuide.topics.find((topic) => topic.id === params.get("topic"));
@@ -10,7 +11,6 @@ const collectionMode = ["mistakes", "favorites"].includes(params.get("collection
 const examMode = !collectionMode && !selectedGroup && !selectedTopic && !selectedDay && (params.get("exam") === "1" || params.get("mixed") === "1");
 const practiceKey = collectionMode || (selectedGroup ? `group-${selectedGroup.id}` : selectedTopic ? `topic-${selectedTopic.id}` : selectedDay ? `day-${selectedDay.day}` : examMode ? "exam" : "all");
 const storageKey = examMode ? "radio-a-exam-v1" : `radio-a-practice-v1-${practiceKey}`;
-const settingsKey = "radio-a-practice-settings-v1";
 const collectionsKey = "radio-a-collections-v1";
 let storageAvailable = true;
 function readSaved(key) {
@@ -38,14 +38,13 @@ if (!savedCollections) {
     }
   } catch { storageAvailable = false; }
 }
-let autoNext = readSaved(settingsKey)?.autoNext !== false;
 let autoNextTimer;
+let hintQuestionId = null;
 let questions = allQuestions;
 let practiceTitle = "";
 let practiceReturn = "study.html";
 if (collectionMode) {
   questions = allQuestions.filter((question) => collections[collectionMode].has(question.id));
-  practiceTitle = collectionMode === "mistakes" ? "答错自动收录，答对后仍保留；可手动移出错题本。" : "点击题目右上角的星标，随时收藏或取消收藏。";
   practiceReturn = "index.html";
 } else if (selectedGroup) {
   const numbers = new Set(selectedGroup.question_numbers);
@@ -78,6 +77,15 @@ const states = questions.map((question) => {
 let currentIndex = Math.max(0, questions.findIndex((question) => question.number === Number(params.get("question") || saved?.currentQuestion)));
 const $ = (id) => document.getElementById(id);
 const navButtons = [];
+let questionTransition = null;
+
+function clearQuestionTransition() {
+  if (!questionTransition) return;
+  questionTransition.animations.forEach((animation) => animation.cancel());
+  questionTransition.copy.remove();
+  $("question-stage").style.minHeight = "";
+  questionTransition = null;
+}
 
 function shuffle(items) {
   const result = [...items];
@@ -109,9 +117,8 @@ function renderExam() {
   if (!examMode) return;
   document.body.classList.add("exam-mode");
   document.body.classList.toggle("exam-taking", !submitted);
-  $("practice-context").hidden = Boolean(exam.deadline);
   document.querySelector(".exam-clock > span").textContent = submitted ? "交卷时剩余" : "剩余时间";
-  document.querySelector(".keyboard-hint").textContent = submitted ? "← → 切题 · 查看作答结果" : "← → 切题 · 交卷前可修改答案";
+  document.querySelector(".keyboard-hint").textContent = submitted ? "方向键切题 · 查看作答结果" : "方向键切题 · 交卷前可修改答案";
   $("start-exam").hidden = Boolean(exam.deadline);
   $("submit-exam").hidden = !exam.deadline || submitted;
   $("new-exam").hidden = !submitted;
@@ -168,18 +175,11 @@ function saveCollections() {
 }
 
 function renderCollectionControls() {
-  $("mistakes-count").textContent = collections.mistakes.size;
-  $("favorites-count").textContent = collections.favorites.size;
-  document.querySelectorAll("[data-collection]").forEach((link) => {
-    if (link.dataset.collection === (collectionMode || (examMode ? "exam" : "all"))) link.setAttribute("aria-current", "page");
-    else link.removeAttribute("aria-current");
-  });
   const question = questions[currentIndex];
   const favorite = !!question && collections.favorites.has(question.id);
   $("toggle-favorite").setAttribute("aria-pressed", String(favorite));
   $("toggle-favorite").setAttribute("aria-label", favorite ? "取消收藏本题" : "收藏本题");
-  $("favorite-icon").textContent = favorite ? "★" : "☆";
-  $("favorite-label").textContent = favorite ? "已收藏" : "收藏";
+  $("toggle-favorite").title = favorite ? "取消收藏本题" : "收藏本题";
   $("remove-mistake").hidden = !question || !collections.mistakes.has(question.id) || (examMode && !exam.submittedAt);
 }
 
@@ -208,23 +208,10 @@ function isCorrect(question, selected) {
 }
 
 function renderProgress() {
-  let correct = 0;
-  let incorrect = 0;
-  states.forEach((state, index) => {
-    if (!state.checked) return;
-    if (isCorrect(questions[index], state.selected)) correct++;
-    else incorrect++;
-  });
   const takingExam = examMode && !exam.submittedAt;
-  const answered = takingExam ? states.filter((state) => state.selected.length).length : correct + incorrect;
-  document.querySelector(".stats").hidden = takingExam;
-  document.querySelector(".progress-caption > span").firstChild.textContent = takingExam ? "已作答 " : "已检查 ";
+  const answered = states.filter((state) => takingExam ? state.selected.length : state.checked).length;
+  $("navigation-status-label").textContent = takingExam ? "已作答" : "已检查";
   $("answered-count").textContent = answered;
-  $("correct-count").textContent = correct;
-  $("incorrect-count").textContent = incorrect;
-  $("remaining-count").textContent = questions.length - answered;
-  $("progress").value = answered;
-  $("progress-percent").textContent = `${questions.length ? Math.round(answered / questions.length * 100) : 0}%`;
 }
 
 function renderNavigation() {
@@ -237,19 +224,74 @@ function renderNavigation() {
     button.classList.toggle("answered-pending", takingExam && state.selected.length > 0);
     button.disabled = examMode && !exam.deadline;
     button.setAttribute("aria-current", String(index === currentIndex));
-    button.setAttribute("aria-label", `第 ${examMode ? index + 1 : questions[index].number} 题，${takingExam ? (state.selected.length ? "已作答" : "未作答") : status}`);
+    button.setAttribute("aria-label", `第 ${examMode || collectionMode ? index + 1 : questions[index].number} 题，${takingExam ? (state.selected.length ? "已作答" : "未作答") : status}`);
   });
 }
 
+function renderHint() {
+  const question = questions[currentIndex];
+  const group = hintGroups.get(question?.number);
+  const available = group && (!examMode || exam.submittedAt);
+  if (!available) hintQuestionId = null;
+  const open = available && hintQuestionId === question.id;
+  $("toggle-hint").hidden = !available;
+  const dialog = $("hint-dialog");
+  const panel = $("question-hint");
+  panel.replaceChildren();
+  if (!open) {
+    if (dialog.open) dialog.close();
+    return;
+  }
+
+  const title = document.createElement("h3");
+  title.id = "hint-title";
+  title.textContent = group.title;
+  const mnemonic = document.createElement("p");
+  mnemonic.className = "hint-mnemonic";
+  mnemonic.textContent = `速记口诀｜${group.mnemonic}`;
+  const heading = document.createElement("h4");
+  heading.textContent = "解题线索";
+  const rules = document.createElement("ul");
+  group.rules.forEach((rule) => {
+    const item = document.createElement("li");
+    item.textContent = rule;
+    rules.append(item);
+  });
+  const pitfall = document.createElement("p");
+  pitfall.className = "hint-pitfall";
+  pitfall.textContent = `避坑提醒｜${group.pitfall}`;
+  panel.append(title, mnemonic, heading, rules, pitfall);
+  studyGuide.source_cautions.filter((issue) => issue.question_numbers.includes(question.number)).forEach((issue) => {
+    const caution = document.createElement("p");
+    caution.className = "hint-caution";
+    caution.textContent = `本题特别提醒｜${issue.detail}`;
+    panel.append(caution);
+  });
+  const footer = document.createElement("div");
+  footer.className = "hint-footer";
+  const link = document.createElement("a");
+  link.href = `study.html?topic=${group.topic_id}#group-${group.id}`;
+  link.append("查看同组速记", window.radioIcon("next"));
+  footer.append(link);
+  if (!examMode) {
+    const note = document.createElement("span");
+    note.textContent = "已暂停本题自动跳转，请手动切题。";
+    footer.append(note);
+  }
+  panel.append(footer);
+  if (!dialog.open) dialog.showModal();
+}
+
 function renderQuestion() {
+  clearQuestionTransition();
   renderExam();
   const empty = !questions.length;
   const ready = !examMode || Boolean(exam.deadline);
   $("question-card").hidden = empty || !ready;
   $("page-navigation").hidden = empty || !ready;
-  $("practice-settings").hidden = empty || !ready;
   $("empty-collection").hidden = !empty;
   renderCollectionControls();
+  renderHint();
   if (empty) {
     $("empty-title").textContent = collectionMode === "mistakes" ? "还没有错题，继续保持！" : "还没有收藏的题目";
     $("empty-description").textContent = collectionMode === "mistakes" ? "答错的题目会自动收录在这里，方便集中复习。" : "做题时点击星标，即可把想复习的题目收藏到这里。";
@@ -264,16 +306,29 @@ function renderQuestion() {
   const question = questions[currentIndex];
   const state = states[currentIndex];
   const multiple = question.answers.length > 1;
-  $("question-number").textContent = `第 ${String(examMode ? currentIndex + 1 : question.number).padStart(3, "0")} 题`;
+  $("question-number").textContent = `第 ${String(examMode || collectionMode ? currentIndex + 1 : question.number).padStart(3, "0")} 题`;
   $("question-type").textContent = multiple ? "多选题" : "单选题";
-  $("chapter-label").textContent = `知识点 ${question.chapter}`;
   $("question-title").textContent = question.question;
   $("selection-hint").textContent = examMode && !exam.submittedAt ? (multiple ? "请选择所有正确选项，可修改答案，交卷后统一判分。" : "请选择一个正确选项，可修改答案，交卷后统一判分。") : multiple ? "请选择所有正确选项，按回车或点击「提交答案」。" : "请选择一个正确选项，点击后自动提交。";
   if (examMode && exam.submittedAt) $("selection-hint").textContent = "试卷已交卷，下面显示你的作答与正确选项。";
-  $("source-id").textContent = `${examMode ? `题库第 ${question.number} 题 · ` : ""}原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
+  $("source-id").textContent = `${examMode || collectionMode ? `题库第 ${question.number} 题 · ` : ""}原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
   $("source-pages").textContent = `来源 PDF 第 ${question.source_pages.join("、")} 页`;
-  $("image-notice").hidden = !question.image_files.length;
-  $("image-notice").textContent = question.image_files.length ? `本题原 PDF 仅列出配图文件名（${question.image_files.join("、")}），未提供实际图片。` : "";
+  const images = $("question-images");
+  images.hidden = !question.image_files.length;
+  images.replaceChildren();
+  question.image_files.forEach((file) => {
+    const image = document.createElement("img");
+    image.className = "question-image";
+    image.alt = `第 ${question.number} 题配图`;
+    image.addEventListener("error", () => {
+      const notice = document.createElement("p");
+      notice.className = "image-notice";
+      notice.textContent = `本题配图（${file}）加载失败，请刷新重试。`;
+      image.replaceWith(notice);
+    });
+    image.src = `images/${file}`;
+    images.append(image);
+  });
 
   const options = $("options");
   options.replaceChildren();
@@ -336,7 +391,7 @@ function renderQuestion() {
     const correct = isCorrect(question, state.selected);
     feedback.classList.toggle("incorrect", !correct);
     const title = document.createElement("strong");
-    title.textContent = correct ? "✓ 回答正确" : "✕ 回答错误";
+    title.append(window.radioIcon(correct ? "check" : "close"), document.createTextNode(correct ? "回答正确" : "回答错误"));
     const detail = document.createElement("span");
     const answerLetters = (keys) => examMode ? state.optionOrder.flatMap((key, index) => keys.includes(key) ? [String.fromCharCode(65 + index)] : []).join("、") : keys.join("、");
     detail.textContent = `你的答案：${answerLetters(state.selected) || "未作答"}。正确答案：${answerLetters(question.answers)}。`;
@@ -361,7 +416,13 @@ function goToQuestion(index) {
     if (!exam.deadline) return;
   }
   if (index < 0 || index >= questions.length) return;
+  clearQuestionTransition();
+  const card = $("question-card");
+  const direction = Math.sign(index - currentIndex);
+  const copy = direction && !card.hidden && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? card.cloneNode(true) : null;
+  const previousHeight = card.offsetHeight;
   clearTimeout(autoNextTimer);
+  hintQuestionId = null;
   currentIndex = index;
   const url = new URL(location.href);
   url.searchParams.set("question", questions[index].number);
@@ -375,7 +436,30 @@ function goToQuestion(index) {
   const offset = button.getBoundingClientRect().top - nav.getBoundingClientRect().top;
   if (offset < 0) nav.scrollTop += offset;
   else if (offset + button.offsetHeight > nav.clientHeight) nav.scrollTop += offset + button.offsetHeight - nav.clientHeight;
-  if (window.matchMedia("(max-width: 760px)").matches) $("question-card").scrollIntoView({ block: "start" });
+  if (window.matchMedia("(max-width: 760px)").matches) window.scrollTo({ top: 0 });
+  if (copy) {
+    copy.removeAttribute("id");
+    copy.removeAttribute("aria-labelledby");
+    copy.setAttribute("aria-hidden", "true");
+    copy.inert = true;
+    copy.classList.add("question-transition-copy");
+    copy.querySelectorAll("[id], [name]").forEach((node) => {
+      node.removeAttribute("id");
+      node.removeAttribute("name");
+    });
+    const stage = $("question-stage");
+    stage.style.minHeight = `${Math.max(previousHeight, card.offsetHeight)}px`;
+    stage.append(copy);
+    const timing = { duration: 260, easing: "cubic-bezier(.22,.61,.36,1)" };
+    const animations = [
+      copy.animate([{ transform: "translateX(0)" }, { transform: `translateX(${-direction * 100}%)` }], timing),
+      card.animate([{ transform: `translateX(${direction * 100}%)` }, { transform: "translateX(0)" }], timing),
+    ];
+    questionTransition = { copy, animations };
+    Promise.all(animations.map((animation) => animation.finished)).then(() => {
+      if (questionTransition?.copy === copy) clearQuestionTransition();
+    }, () => {});
+  }
 }
 
 function submitAnswer() {
@@ -389,7 +473,7 @@ function submitAnswer() {
   }
   saveProgress();
   renderQuestion();
-  if (autoNext && currentIndex < questions.length - 1) {
+  if (!$("hint-dialog").open && currentIndex < questions.length - 1) {
     $("action-hint").textContent = "已提交，即将进入下一题";
     autoNextTimer = setTimeout(() => goToQuestion(currentIndex + 1), 900);
   }
@@ -401,31 +485,35 @@ function buildNavigation() {
   questions.forEach((question, index) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = examMode ? index + 1 : question.number;
+    button.textContent = examMode || collectionMode ? index + 1 : question.number;
     button.dataset.questionNumber = question.number;
     button.addEventListener("click", () => goToQuestion(index));
     navButtons.push(button);
     $("question-nav").append(button);
   });
   document.querySelectorAll("[data-total]").forEach((element) => { element.textContent = questions.length; });
-  $("progress").max = questions.length || 1;
+  $("jump-input").max = collectionMode || examMode ? questions.length : allQuestions.length;
 }
 buildNavigation();
-$("jump-input").max = examMode ? 40 : allQuestions.length;
 $("jump-input").addEventListener("input", () => $("jump-input").setCustomValidity(""));
-if (practiceTitle) {
-  $("practice-mode").textContent = collectionMode ? (collectionMode === "mistakes" ? "错题本" : "我的收藏") : examMode ? "模拟考试" : "专题练习";
+$("practice-mode").textContent = collectionMode ? (collectionMode === "mistakes" ? "错题本" : "我的收藏") : examMode ? "模拟考试" : selectedGroup || selectedTopic || selectedDay ? "专题练习" : "顺序练习";
+document.title = `A 类题库 · ${$("practice-mode").textContent}`;
+document.querySelector("#practice-sidebar .section-heading h2").textContent = collectionMode ? $("practice-mode").textContent : "题目导航";
+$("practice-navigation-title").textContent = collectionMode ? `${$("practice-mode").textContent} · 题目导航` : "题目导航";
+if (practiceTitle && !examMode) {
   $("practice-context").hidden = false;
-  const back = document.createElement("a");
-  back.href = practiceReturn;
-  back.textContent = collectionMode ? "← 返回全部题库" : "← 返回分类速记";
-  $("practice-context").append(back, document.createTextNode(practiceTitle));
+  $("practice-context").textContent = practiceTitle;
+}
+if (collectionMode) {
+  $("jump-input").placeholder = collectionMode === "mistakes" ? "输入错题序号" : "输入收藏序号";
+  document.querySelector('label[for="jump-input"]').textContent = `跳转到${$("practice-mode").textContent}序号`;
+  $("question-nav").setAttribute("aria-label", `按${$("practice-mode").textContent}序号选择题目`);
 }
 $("jump-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const number = Number($("jump-input").value);
-  const index = examMode ? number - 1 : questions.findIndex((question) => question.number === number);
-  if (index !== -1) {
+  const index = examMode || collectionMode ? number - 1 : questions.findIndex((question) => question.number === number);
+  if (index >= 0 && index < questions.length) {
     goToQuestion(index);
     $("jump-input").value = "";
   } else {
@@ -433,19 +521,8 @@ $("jump-form").addEventListener("submit", (event) => {
     $("jump-input").reportValidity();
   }
 });
-$("auto-next").checked = autoNext;
-$("auto-next").addEventListener("change", () => {
-  autoNext = $("auto-next").checked;
-  clearTimeout(autoNextTimer);
-  try {
-    localStorage.setItem(settingsKey, JSON.stringify({ autoNext }));
-  } catch {
-    $("save-status").textContent = "当前浏览器无法保存设置，刷新后将恢复默认设置。";
-  }
-  renderQuestion();
-});
 document.addEventListener("keydown", (event) => {
-  if ($("practice-navigation").open) return;
+  if (document.querySelector("dialog[open]")) return;
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing || event.defaultPrevented) return;
   const target = event.target;
   if (target.closest('textarea, select, [contenteditable]:not([contenteditable="false"])') || (target.matches("input") && !target.matches('[name="answer"]'))) return;
@@ -466,6 +543,45 @@ $("retry-answer").addEventListener("click", () => {
 });
 $("previous-question").addEventListener("click", () => goToQuestion(currentIndex - 1));
 $("next-question").addEventListener("click", () => goToQuestion(currentIndex + 1));
+$("open-question-navigation").addEventListener("click", () => clearTimeout(autoNextTimer));
+$("toggle-hint").addEventListener("click", () => {
+  if (examMode && !exam.submittedAt) return;
+  hintQuestionId = questions[currentIndex].id;
+  clearTimeout(autoNextTimer);
+  if (states[currentIndex].checked) $("action-hint").textContent = "可重新作答，或继续下一题";
+  renderHint();
+});
+$("hint-dialog").addEventListener("close", () => { if (!$("hint-dialog").open) hintQuestionId = null; });
+$("back-to-list").href = selectedGroup || selectedTopic || selectedDay ? practiceReturn : "index.html";
+$("back-to-list").setAttribute("aria-label", selectedGroup || selectedTopic || selectedDay ? "返回分类速记" : "返回首页");
+$("back-to-list").title = $("back-to-list").getAttribute("aria-label");
+
+let swipeStart = null;
+let swiped = false;
+const questionCard = $("question-card");
+questionCard.addEventListener("pointerdown", (event) => {
+  swipeStart = null;
+  swiped = false;
+  if (event.pointerType !== "touch" || !event.isPrimary || !window.matchMedia("(max-width: 760px)").matches || document.querySelector("dialog[open]") || event.target.closest("button, a, input")) return;
+  swipeStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+});
+questionCard.addEventListener("pointerup", (event) => {
+  if (!swipeStart || event.pointerId !== swipeStart.id) return;
+  const dx = event.clientX - swipeStart.x;
+  const dy = event.clientY - swipeStart.y;
+  swipeStart = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || document.querySelector("dialog[open]")) return;
+  swiped = true;
+  event.preventDefault();
+  goToQuestion(currentIndex + (dx < 0 ? 1 : -1));
+});
+questionCard.addEventListener("pointercancel", () => { swipeStart = null; });
+questionCard.addEventListener("click", (event) => {
+  if (!swiped) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  swiped = false;
+}, true);
 $("toggle-favorite").addEventListener("click", () => {
   const id = questions[currentIndex].id;
   if (collections.favorites.has(id)) removeFromCollection("favorites");
@@ -477,9 +593,6 @@ $("toggle-favorite").addEventListener("click", () => {
 $("remove-mistake").addEventListener("click", () => removeFromCollection("mistakes"));
 if (examMode) {
   document.title = "A 类题库 · 模拟考试";
-  document.querySelector(".total-label").textContent = "40 道题 · 40 分钟";
-  document.querySelector('.header-nav [aria-current="page"]').removeAttribute("aria-current");
-  $("auto-next").closest("label").hidden = true;
   $("jump-input").placeholder = "输入试卷题号";
   document.querySelector('label[for="jump-input"]').textContent = "跳转到试卷题号";
   $("start-exam").addEventListener("click", () => {
@@ -511,9 +624,4 @@ renderQuestion();
 saveCollections();
 saveProgress();
 if (examMode) updateExamClock();
-window.addEventListener("pageshow", () => {
-  if (examMode) updateExamClock();
-  if ((!examMode || exam.deadline) && window.matchMedia("(max-width: 760px)").matches && !location.hash) {
-    requestAnimationFrame(() => $(questions.length ? "question-card" : "empty-collection").scrollIntoView({ block: "start" }));
-  }
-});
+window.addEventListener("pageshow", () => { if (examMode) updateExamClock(); });
