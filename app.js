@@ -339,6 +339,12 @@ function renderQuestion() {
   const question = questions[currentIndex];
   const state = states[currentIndex];
   const multiple = question.answers.length > 1;
+  const group = hintGroups.get(question.number);
+  $("similar-practice").hidden = examMode && !exam.submittedAt;
+  $("similar-topic").textContent = group.title;
+  $("similar-count").textContent = `· ${group.question_numbers.length} 题`;
+  $("practice-similar").href = `practice.html?group=${group.id}&question=${group.question_numbers.find((number) => number !== question.number)}`;
+  $("practice-similar").setAttribute("aria-label", `练同类：${group.title}，共 ${group.question_numbers.length} 题`);
   $("question-number").textContent = `第 ${String(sequentialNumbers ? currentIndex + 1 : question.number).padStart(3, "0")} 题`;
   $("question-type").textContent = multiple ? "多选题" : "单选题";
   renderSearchText($("question-title"), question.question);
@@ -576,6 +582,13 @@ $("retry-answer").addEventListener("click", () => {
 });
 $("previous-question").addEventListener("click", () => goToQuestion(currentIndex - 1));
 $("next-question").addEventListener("click", () => goToQuestion(currentIndex + 1));
+$("practice-similar").addEventListener("click", (event) => {
+  if (!selectedGroup || searchMode || collectionMode) return;
+  event.preventDefault();
+  clearTimeout(autoNextTimer);
+  if (states[currentIndex].checked) $("action-hint").textContent = "可重新作答，或继续下一题";
+  window.alert("已经在同类练习中了。");
+});
 $("open-question-navigation").addEventListener("click", () => clearTimeout(autoNextTimer));
 $("toggle-hint").addEventListener("click", () => {
   if (examMode && !exam.submittedAt) return;
@@ -590,31 +603,43 @@ $("back-to-list").setAttribute("aria-label", searchMode ? "返回首页搜索" :
 $("back-to-list").title = $("back-to-list").getAttribute("aria-label");
 
 let swipeStart = null;
-let swiped = false;
-const questionCard = $("question-card");
-questionCard.addEventListener("pointerdown", (event) => {
+const swipeArea = document.querySelector(".workspace > main");
+swipeArea.addEventListener("touchstart", (event) => {
   swipeStart = null;
-  swiped = false;
-  if (event.pointerType !== "touch" || !event.isPrimary || !window.matchMedia("(max-width: 760px)").matches || document.querySelector("dialog[open]") || event.target.closest("button, a, input")) return;
-  swipeStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
-});
-questionCard.addEventListener("pointerup", (event) => {
-  if (!swipeStart || event.pointerId !== swipeStart.id) return;
-  const dx = event.clientX - swipeStart.x;
-  const dy = event.clientY - swipeStart.y;
+  if (event.touches.length !== 1 || !window.matchMedia("(max-width: 760px)").matches || document.querySelector("dialog[open]") || event.target.closest('button, a, input:not([name="answer"])')) return;
+  const touch = event.touches[0];
+  swipeStart = { x: touch.clientX, y: touch.clientY, horizontal: false };
+}, { passive: true });
+swipeArea.addEventListener("touchmove", (event) => {
+  if (!swipeStart) return;
+  if (event.touches.length !== 1) { swipeStart = null; return; }
+  const touch = event.touches[0];
+  const dx = Math.abs(touch.clientX - swipeStart.x);
+  const dy = Math.abs(touch.clientY - swipeStart.y);
+  if (!swipeStart.horizontal && dy >= 12 && dy > dx) {
+    swipeStart = null;
+    return;
+  }
+  if (dx < 12 || dx < dy * 1.2) return;
+  if (!swipeStart.horizontal) {
+    swipeStart.horizontal = true;
+    clearTimeout(autoNextTimer);
+  }
+  if (event.cancelable) event.preventDefault();
+}, { passive: false });
+swipeArea.addEventListener("touchend", (event) => {
+  if (!swipeStart) return;
+  const touch = event.changedTouches[0];
+  const dx = touch.clientX - swipeStart.x;
+  const dy = touch.clientY - swipeStart.y;
+  if (swipeStart.horizontal && event.cancelable) event.preventDefault();
   swipeStart = null;
-  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || document.querySelector("dialog[open]")) return;
-  swiped = true;
-  event.preventDefault();
+  if (Math.abs(dx) < 32 || Math.abs(dx) < Math.abs(dy) * 1.2 || document.querySelector("dialog[open]")) return;
+  if (event.cancelable) event.preventDefault();
+  // 等完整触摸结束后再重建题目，避免在 pointerup 阶段移除仍被触摸的选项。
   goToQuestion(currentIndex + (dx < 0 ? 1 : -1));
-});
-questionCard.addEventListener("pointercancel", () => { swipeStart = null; });
-questionCard.addEventListener("click", (event) => {
-  if (!swiped) return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  swiped = false;
-}, true);
+}, { passive: false });
+swipeArea.addEventListener("touchcancel", () => { swipeStart = null; }, { passive: true });
 $("toggle-favorite").addEventListener("click", () => {
   const id = questions[currentIndex].id;
   if (collections.favorites.has(id)) removeFromCollection("favorites");

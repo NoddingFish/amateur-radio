@@ -132,8 +132,12 @@ progress::-moz-progress-bar { background: var(--green); }
 .answer-actions > span { color: #96a08e; font-size: 11px; }
 .text-button { background: transparent; border: 0; color: var(--green); font-size: 12px; padding: 10px 0; }
 .text-button:hover { text-decoration: underline; }
+.similar-practice { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #eef0e7; }
+.similar-practice > span { min-width: 0; font-size: 11px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.similar-practice a { flex-shrink: 0; min-height: 44px; text-decoration: none; }
 .source-line { display: flex; gap: 15px; flex-wrap: wrap; justify-content: space-between; border-top: 1px solid #eef0e7; margin: 0 -36px; padding: 16px 36px; color: #97a08f; font-size: 10px; line-height: 1.7; }
-.page-navigation { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
+.page-navigation { position: fixed; inset: auto 0 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 10px max(12px, calc((100% - 976px) / 2)) calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: #f6f7f1; box-shadow: 0 -4px 16px #334b3208; }
+.page-navigation .secondary-button { justify-content: center; flex: 1; max-width: 180px; min-height: 44px; padding: 10px; gap: 8px; }
 .secondary-button { display: flex; align-items: center; gap: 17px; background: #fbfcf7; border: 1px solid #dce3d5; border-radius: 8px; padding: 12px 18px; font-size: 12px; color: #5b7057; }
 .secondary-button:not(:disabled):hover { border-color: #96ae8c; background: #eef3e8; }
 #page-position { color: #929c88; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -172,8 +176,6 @@ progress::-moz-progress-bar { background: var(--green); }
   .answer-actions > span { flex-basis: 100%; line-height: 1.7; }
   .primary-button { padding: 12px 16px; min-height: 46px; }
   .text-button { min-height: 44px; padding: 10px; }
-  .page-navigation { position: sticky; bottom: 0; z-index: 2; gap: 8px; margin: 16px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: #f6f7f1f5; box-shadow: 0 -4px 16px #334b3208; }
-  .page-navigation .secondary-button { justify-content: center; min-height: 46px; padding: 12px; gap: 8px; flex: 1; }
   #page-position { min-width: 64px; text-align: center; }
   .practice-note { font-size: 10px; margin: 20px 10px 0; }
   .sidebar { width: 100%; grid-template-columns: 1fr; }
@@ -217,8 +219,6 @@ progress::-moz-progress-bar { background: var(--green); }
   .practice-page .question-card:has(input[type="radio"]) .answer-actions:has(.retry-answer[hidden]) { display: none; }
   .practice-page .primary-button, .practice-page .text-button { min-height: 44px; padding: 10px; }
   .practice-page .source-line { margin: 0 -12px; padding: 6px 12px; gap: 2px 8px; overflow-wrap: anywhere; }
-  .practice-page .page-navigation { margin: 8px -10px 0; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); }
-  .practice-page .page-navigation .secondary-button { min-height: 44px; padding: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
@@ -284,7 +284,6 @@ html:has(.navigation-dialog[open]) { overflow: hidden; }
   .answer-actions { min-height: 44px; padding: 0; }
   .primary-button { padding: 10px 15px; }
   .source-line { margin: 0 -24px; padding: 9px 24px; }
-  .page-navigation { margin-top: 12px; }
   .practice-note { margin: 10px 0 0; line-height: 1.6; }
   .practice-note br { display: none; }
   .practice-note #save-status { margin-left: 12px; }
@@ -320,6 +319,7 @@ html:has(.hint-dialog[open]) { overflow: hidden; }
 .favorite-action[aria-pressed="true"] { color: #9a712d; }
 .favorite-action[aria-pressed="true"] .icon { fill: currentColor; }
 .practice-page .site-header { gap: 12px; flex-wrap: nowrap; }
+.practice-page { padding-bottom: calc(65px + env(safe-area-inset-bottom)); }
 .practice-page .brand { flex-shrink: 0; }
 .practice-header-context { flex: 1; min-width: 0; }
 .practice-header-context h1 { margin: 0; font-size: 13px; line-height: 1.6; font-weight: 500; color: var(--muted); }
@@ -422,7 +422,7 @@ html:has(.hint-dialog[open]) { overflow: hidden; }
 .home-dashboard .stats strong { font-size: 24px; }
 .mastery-note { margin: 0; font-size: 12px; line-height: 1.9; color: #7c8d76; }
 @media (max-width: 760px) {
-  .practice-page #question-card { touch-action: pan-y pinch-zoom; }
+  .practice-page .workspace > main { touch-action: pan-y pinch-zoom; }
   .swipe-hint { display: block; margin-bottom: 4px; color: #6e8770; }
   .back-to-list { min-height: 36px; }
   .hint-dialog { padding: 16px; max-height: calc(100dvh - 24px); }

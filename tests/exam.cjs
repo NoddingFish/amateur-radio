@@ -86,7 +86,10 @@ const { pathToFileURL } = require("node:url");
     await page.locator('#options input[value="A"]').check();
     await page.locator('#options input[value="B"]').check();
     assert.equal(await page.locator("#options input:checked").count(), 1, "单选可修改答案");
-    assert.equal(await page.locator("#page-navigation").evaluate((node) => node.getBoundingClientRect().bottom <= node.parentElement.getBoundingClientRect().bottom), true, "桌面常规考题的切题按钮应在屏幕内");
+    assert.equal(await page.locator("#page-navigation").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.top >= 0 && Math.abs(rect.bottom - innerHeight) <= 1;
+    }), true, "考试切题栏固定在屏幕底部");
     assert.equal(await mistakeCount(), "0", "交卷前不收录或泄露错题");
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.locator("#submit-exam").click();
