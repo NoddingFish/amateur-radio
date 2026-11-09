@@ -10,7 +10,9 @@
   <script src="questions.js" defer></script>
   <script src="study-data.js" defer></script>
   <script src="icons.js" defer></script>
+  <script src="search-history.js" defer></script>
   <script src="home.js" defer></script>
+  <script src="backup.js" defer></script>
 </head>
 <body class="home-page">
   <header class="site-header">
@@ -21,8 +23,12 @@
       <div class="home-heading"><p class="eyebrow">AMATEUR RADIO · CLASS A</p><h1 id="home-title">A 类题库</h1><p>从记住规则，到独立做对。</p><span>CRAC 2025 年版 · 683 道题 · 70 个记忆组</span></div>
       <form id="search-form" class="home-search" action="practice.html" method="get" role="search">
         <label for="search-input">搜索题目或选项</label>
-        <div class="search-controls"><input id="search-input" name="search" type="search" placeholder="输入关键词，如：天线、呼号、FM" aria-describedby="search-description" required><button class="primary-button" type="submit">搜索并做题</button></div>
+        <div class="search-controls"><input id="search-input" name="search" type="search" placeholder="输入关键词，如：天线、呼号、FM" aria-describedby="search-description" aria-controls="search-history" aria-haspopup="dialog" aria-expanded="false" autocomplete="off" required><button class="primary-button" type="submit">搜索并做题</button></div>
         <p id="search-description">匹配题干或任一选项，即加入临时题库；做题时高亮关键词。</p>
+        <section id="search-history" class="search-history" role="dialog" aria-labelledby="history-title" hidden>
+          <div class="history-heading"><strong id="history-title">最近搜索</strong><div><button id="history-toggle" class="text-button" type="button" hidden>全部记录</button><button id="history-clear" class="text-button" type="button" hidden>清空</button><button id="history-close" class="icon-action" type="button" aria-label="关闭搜索记录"><span data-icon="close"></span></button></div></div>
+          <ul id="history-list" class="history-list"></ul><p id="history-empty">暂无搜索记录</p>
+        </section>
       </form>
       <section class="home-dashboard" aria-label="学习进度">
         <section class="progress-card" aria-labelledby="practice-progress-title">
@@ -45,6 +51,7 @@
         <a class="entry-card" href="practice.html?collection=favorites"><span class="entry-number"><span data-icon="bookmark"></span>04 / FAVORITES</span><h2>我的收藏 <span data-icon="next"></span></h2><p>留下值得再看的题，集中练习。</p><small><span id="favorites-count">0</span> 道已收藏</small></a>
         <a class="entry-card" href="practice.html?exam=1"><span class="entry-number"><span data-icon="timer"></span>05 / EXAM</span><h2>模拟考试 <span data-icon="next"></span></h2><p>随机组卷、限时作答，交卷后统一复盘。</p><small>40 题 · 40 分钟 · 答对 30 题合格</small></a>
       </nav>
+      <section class="data-card" aria-labelledby="data-title"><div><h2 id="data-title">学习数据备份</h2><p id="data-summary"></p><p>保存搜索记录、错题、收藏、作答进度、考试与掌握标记，也包含当前标签页的临时搜索进度。</p></div><button id="open-backup" class="secondary-button" type="button" aria-haspopup="dialog" aria-controls="data-dialog">导入 / 导出</button></section>
     </section>
     <section id="library-panel" aria-labelledby="library-title" hidden>
       <a id="library-back" class="back-to-list" href="index.html"><span data-icon="back"></span>返回首页</a>
@@ -53,6 +60,12 @@
     </section>
     <p id="home-storage-note" class="practice-note" role="status"></p>
   </main>
+  <dialog id="data-dialog" class="data-dialog" aria-labelledby="data-dialog-title">
+    <div class="dialog-heading"><h2 id="data-dialog-title">学习数据导入 / 导出</h2><button id="close-backup" type="button" aria-label="关闭数据备份"><span data-icon="close"></span></button></div>
+    <section aria-labelledby="export-title"><h3 id="export-title">导出完整备份</h3><p id="export-summary"></p><label class="sr-only" for="export-text">可复制的备份内容</label><textarea id="export-text" rows="4" readonly spellcheck="false"></textarea><div class="data-actions"><button id="download-backup" class="secondary-button" type="button">下载备份文件</button><button id="copy-backup" class="secondary-button" type="button">复制备份</button></div></section>
+    <section class="data-import" aria-labelledby="import-title"><h3 id="import-title">导入备份</h3><p>导入会完整替换当前浏览器中的学习数据。可先导出一份备份，再选择文件或粘贴内容。</p><label for="import-file">选择备份文件</label><input id="import-file" class="data-import-file" type="file" accept=".json,application/json"><label for="import-text">或粘贴备份内容</label><textarea id="import-text" rows="4" placeholder="在这里粘贴复制的完整备份" spellcheck="false"></textarea><div class="data-actions"><button id="paste-backup" class="secondary-button" type="button">从剪贴板粘贴</button><button id="validate-backup" class="secondary-button" type="button">校验备份</button></div><p id="import-preview" hidden></p><button id="apply-backup" class="primary-button" type="button" disabled>确认导入并替换数据</button><p>模拟考试仍按原截止时间计时；临时搜索进度恢复到当前标签页。</p></section>
+    <p id="backup-status" role="status" aria-live="polite"></p>
+  </dialog>
   <footer class="site-footer">业余无线电台操作技术能力验证 · 题目来源：CRAC 2025 年版 A 类题库</footer>
   <noscript><p class="noscript-message">请启用 JavaScript，或阅读 <a href="A类考试_分类速记.md">文字版分类速记</a>。</p></noscript>
 </body>

@@ -19,7 +19,7 @@ const { pathToFileURL } = require("node:url");
 
     await page.goto(url("index.html"));
     await page.locator("#search-input").fill("   ");
-    await page.locator("#search-form button").click();
+    await page.locator('#search-form button[type="submit"]').click();
     assert.equal(new URL(page.url()).pathname.endsWith("index.html"), true, "空白关键词留在首页");
     assert.equal(await page.locator("#search-input").evaluate((node) => node.checkValidity()), false);
     await page.reload();
@@ -73,7 +73,7 @@ const { pathToFileURL } = require("node:url");
     assert.equal(saved.session.searchKeyword, "天线");
     assert.ok(saved.collections.mistakes.includes(expected[0].id));
     assert.ok(saved.collections.favorites.includes(expected[0].id));
-    assert.deepEqual(saved.permanent, []);
+    assert.deepEqual(saved.permanent, ["radio-a-search-history-v1"], "仅关键词历史永久保存，搜索作答仍为临时进度");
     assert.equal(saved.normal, null, "搜索不覆盖顺序练习进度");
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "高亮后的做题页不横向溢出");

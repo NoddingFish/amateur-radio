@@ -606,13 +606,13 @@ let swipeStart = null;
 const swipeArea = document.querySelector(".workspace > main");
 swipeArea.addEventListener("touchstart", (event) => {
   swipeStart = null;
-  if (event.touches.length !== 1 || !window.matchMedia("(max-width: 760px)").matches || document.querySelector("dialog[open]") || event.target.closest('button, a, input:not([name="answer"])')) return;
+  if (event.touches.length !== 1 || !window.getSelection().isCollapsed || !window.matchMedia("(max-width: 760px)").matches || document.querySelector("dialog[open]") || event.target.closest('button, a, input:not([name="answer"])')) return;
   const touch = event.touches[0];
   swipeStart = { x: touch.clientX, y: touch.clientY, horizontal: false };
 }, { passive: true });
 swipeArea.addEventListener("touchmove", (event) => {
   if (!swipeStart) return;
-  if (event.touches.length !== 1) { swipeStart = null; return; }
+  if (event.touches.length !== 1 || !window.getSelection().isCollapsed) { swipeStart = null; return; }
   const touch = event.touches[0];
   const dx = Math.abs(touch.clientX - swipeStart.x);
   const dy = Math.abs(touch.clientY - swipeStart.y);
@@ -681,5 +681,6 @@ if (examMode) {
 renderQuestion();
 saveCollections();
 saveProgress();
+if (searchMode && searchKeyword && !window.radioSearchHistory.add(searchKeyword)) $("save-status").textContent += "当前浏览器无法保存搜索记录。";
 if (examMode) updateExamClock();
 window.addEventListener("pageshow", () => { if (examMode) updateExamClock(); });

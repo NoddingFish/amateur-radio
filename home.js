@@ -10,8 +10,78 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
   const guide = window.STUDY_GUIDE;
   const byId = (id) => document.getElementById(id);
   const searchInput = byId("search-input");
+  const searchForm = byId("search-form");
+  const historyPanel = byId("search-history");
+  let showAllHistory = false;
+  function positionHistory() {
+    if (historyPanel.hidden) return;
+    const rect = searchInput.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const top = viewport?.offsetTop || 0;
+    const left = viewport?.offsetLeft || 0;
+    const width = Math.min(560, (viewport?.width || innerWidth) - 24);
+    const below = top + (viewport?.height || innerHeight) - rect.bottom - 12;
+    const above = rect.top - top - 12;
+    const openBelow = below >= 160 || below >= above;
+    historyPanel.style.width = `${width}px`;
+    historyPanel.style.left = `${Math.max(left + 12, Math.min(rect.left, left + (viewport?.width || innerWidth) - width - 12))}px`;
+    historyPanel.style.maxHeight = `${Math.max(0, Math.min(340, openBelow ? below : above))}px`;
+    historyPanel.style.top = `${Math.max(top + 6, openBelow ? rect.bottom + 6 : rect.top - historyPanel.getBoundingClientRect().height - 6)}px`;
+  }
+  function saveHistory(records) {
+    if (!window.radioSearchHistory.save(records)) byId("home-storage-note").textContent = "当前浏览器无法保存搜索记录的修改。";
+    renderHistory();
+  }
+  function renderHistory() {
+    const records = window.radioSearchHistory.read();
+    byId("history-title").textContent = showAllHistory ? "全部搜索记录" : "最近搜索";
+    byId("history-toggle").hidden = !records.length;
+    byId("history-toggle").textContent = showAllHistory ? "查看最近搜索" : `全部记录（${records.length}）`;
+    byId("history-clear").hidden = !records.length;
+    byId("history-empty").hidden = Boolean(records.length);
+    byId("history-list").replaceChildren();
+    (showAllHistory ? records : records.slice(0, 5)).forEach((keyword) => {
+      const row = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `practice.html?search=${encodeURIComponent(keyword)}`;
+      link.textContent = keyword;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "icon-action";
+      remove.setAttribute("aria-label", `删除搜索记录：${keyword}`);
+      remove.append(window.radioIcon("close"));
+      remove.addEventListener("click", () => saveHistory(window.radioSearchHistory.read().filter((item) => item !== keyword)));
+      row.append(link, remove);
+      byId("history-list").append(row);
+    });
+    positionHistory();
+  }
+  function openHistory() {
+    renderHistory();
+    historyPanel.hidden = false;
+    searchInput.setAttribute("aria-expanded", "true");
+    positionHistory();
+  }
+  function closeHistory() {
+    historyPanel.hidden = true;
+    searchInput.setAttribute("aria-expanded", "false");
+  }
+  searchInput.addEventListener("focus", openHistory);
+  searchInput.addEventListener("click", openHistory);
+  byId("history-toggle").addEventListener("click", () => { showAllHistory = !showAllHistory; renderHistory(); });
+  byId("history-clear").addEventListener("click", () => saveHistory([]));
+  byId("history-close").addEventListener("click", () => { searchInput.focus(); closeHistory(); });
+  window.addEventListener("resize", positionHistory);
+  window.addEventListener("scroll", positionHistory, true);
+  window.visualViewport?.addEventListener("resize", positionHistory);
+  window.visualViewport?.addEventListener("scroll", positionHistory);
+  document.addEventListener("pointerdown", (event) => { if (!searchForm.contains(event.target)) closeHistory(); });
+  searchForm.addEventListener("focusout", (event) => { if (event.relatedTarget && !searchForm.contains(event.relatedTarget)) closeHistory(); });
+  searchForm.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { event.preventDefault(); searchInput.focus(); closeHistory(); }
+  });
   searchInput.addEventListener("input", () => searchInput.setCustomValidity(""));
-  byId("search-form").addEventListener("submit", (event) => {
+  searchForm.addEventListener("submit", (event) => {
     searchInput.value = searchInput.value.trim();
     if (!searchInput.value) {
       event.preventDefault();
