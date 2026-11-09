@@ -9,6 +9,16 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
   const bank = window.QUESTION_BANK;
   const guide = window.STUDY_GUIDE;
   const byId = (id) => document.getElementById(id);
+  const searchInput = byId("search-input");
+  searchInput.addEventListener("input", () => searchInput.setCustomValidity(""));
+  byId("search-form").addEventListener("submit", (event) => {
+    searchInput.value = searchInput.value.trim();
+    if (!searchInput.value) {
+      event.preventDefault();
+      searchInput.setCustomValidity("请输入要搜索的关键词。");
+      searchInput.reportValidity();
+    }
+  });
   function readSaved(key) {
     try { return JSON.parse(localStorage.getItem(key) || "null"); }
     catch { byId("home-storage-note").textContent = "当前浏览器无法读取保存记录，题库仍可使用。"; return null; }

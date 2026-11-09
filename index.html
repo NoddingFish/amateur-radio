@@ -19,6 +19,11 @@
   <main class="library-main">
     <section id="home-panel" aria-labelledby="home-title">
       <div class="home-heading"><p class="eyebrow">AMATEUR RADIO · CLASS A</p><h1 id="home-title">A 类题库</h1><p>从记住规则，到独立做对。</p><span>CRAC 2025 年版 · 683 道题 · 70 个记忆组</span></div>
+      <form id="search-form" class="home-search" action="practice.html" method="get" role="search">
+        <label for="search-input">搜索题目或选项</label>
+        <div class="search-controls"><input id="search-input" name="search" type="search" placeholder="输入关键词，如：天线、呼号、FM" aria-describedby="search-description" required><button class="primary-button" type="submit">搜索并做题</button></div>
+        <p id="search-description">匹配题干或任一选项，即加入临时题库；做题时高亮关键词。</p>
+      </form>
       <section class="home-dashboard" aria-label="学习进度">
         <section class="progress-card" aria-labelledby="practice-progress-title">
           <div class="dashboard-heading"><span class="dashboard-icon" data-icon="book"></span><h2 id="practice-progress-title">顺序练习进度</h2><strong id="progress-percent">0%</strong></div>

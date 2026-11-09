@@ -4,23 +4,28 @@ const allQuestions = window.QUESTION_BANK.map((question, index) => ({ ...questio
 const studyGuide = window.STUDY_GUIDE;
 const hintGroups = new Map(studyGuide.groups.flatMap((group) => group.question_numbers.map((number) => [number, group])));
 const params = new URLSearchParams(location.search);
+const searchMode = params.has("search");
+const searchKeyword = (params.get("search") || "").trim();
+const normalizedKeyword = searchKeyword.toLowerCase();
 const selectedGroup = studyGuide.groups.find((group) => group.id === params.get("group"));
 const selectedTopic = studyGuide.topics.find((topic) => topic.id === params.get("topic"));
 const selectedDay = studyGuide.plan.find((day) => day.day === Number(params.get("day")) && day.group_ids.length);
-const collectionMode = ["mistakes", "favorites"].includes(params.get("collection")) ? params.get("collection") : null;
-const examMode = !collectionMode && !selectedGroup && !selectedTopic && !selectedDay && (params.get("exam") === "1" || params.get("mixed") === "1");
+const collectionMode = !searchMode && ["mistakes", "favorites"].includes(params.get("collection")) ? params.get("collection") : null;
+const examMode = !searchMode && !collectionMode && !selectedGroup && !selectedTopic && !selectedDay && (params.get("exam") === "1" || params.get("mixed") === "1");
 const practiceKey = collectionMode || (selectedGroup ? `group-${selectedGroup.id}` : selectedTopic ? `topic-${selectedTopic.id}` : selectedDay ? `day-${selectedDay.day}` : examMode ? "exam" : "all");
-const storageKey = examMode ? "radio-a-exam-v1" : `radio-a-practice-v1-${practiceKey}`;
+const storageKey = searchMode ? "radio-a-search-v1" : examMode ? "radio-a-exam-v1" : `radio-a-practice-v1-${practiceKey}`;
+const sequentialNumbers = searchMode || examMode || collectionMode;
 const collectionsKey = "radio-a-collections-v1";
 let storageAvailable = true;
 function readSaved(key) {
   try {
-    return JSON.parse(localStorage.getItem(key) || "null");
+    return JSON.parse((searchMode && key === storageKey ? sessionStorage : localStorage).getItem(key) || "null");
   } catch {
     return null;
   }
 }
 let saved = readSaved(storageKey);
+if (searchMode && saved?.searchKeyword !== searchKeyword) saved = null;
 const savedCollections = readSaved(collectionsKey);
 const validIds = new Set(allQuestions.map((question) => question.id));
 const collections = Object.fromEntries(["mistakes", "favorites"].map((name) => [name, new Set(Array.isArray(savedCollections?.[name]) ? savedCollections[name].filter((id) => validIds.has(id)) : [])]));
@@ -43,7 +48,11 @@ let hintQuestionId = null;
 let questions = allQuestions;
 let practiceTitle = "";
 let practiceReturn = "study.html";
-if (collectionMode) {
+if (searchMode) {
+  questions = normalizedKeyword ? allQuestions.filter((question) => [question.question, ...Object.values(question.options)].some((text) => text.toLowerCase().includes(normalizedKeyword))) : [];
+  practiceTitle = `“${searchKeyword}” · ${questions.length} 题 · 临时题库`;
+  practiceReturn = "index.html#search-form";
+} else if (collectionMode) {
   questions = allQuestions.filter((question) => collections[collectionMode].has(question.id));
   practiceReturn = "index.html";
 } else if (selectedGroup) {
@@ -152,12 +161,12 @@ function finishExam(timedOut = false) {
 
 function writeSaved(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    (searchMode && key === storageKey ? sessionStorage : localStorage).setItem(key, JSON.stringify(value));
     storageAvailable = true;
   } catch {
     storageAvailable = false;
   }
-  $("save-status").textContent = storageAvailable ? "作答、当前位置、错题与收藏已自动保存在当前浏览器。" : "当前浏览器无法保存记录，刷新后可能丢失本次作答、错题或收藏。";
+  $("save-status").textContent = storageAvailable ? (searchMode ? "作答与位置仅在当前标签页临时保存，刷新可继续；错题与收藏保存在当前浏览器。" : "作答、当前位置、错题与收藏已自动保存在当前浏览器。") : "当前浏览器无法保存记录，刷新后可能丢失本次作答、错题或收藏。";
 }
 
 function saveProgress() {
@@ -166,6 +175,7 @@ function saveProgress() {
     currentQuestion: questions[currentIndex]?.number || null,
     states: Object.fromEntries(questions.map((question, index) => [question.id, states[index]])),
     ...(examMode ? { exam } : {}),
+    ...(searchMode ? { searchKeyword } : {}),
   });
 }
 
@@ -224,7 +234,7 @@ function renderNavigation() {
     button.classList.toggle("answered-pending", takingExam && state.selected.length > 0);
     button.disabled = examMode && !exam.deadline;
     button.setAttribute("aria-current", String(index === currentIndex));
-    button.setAttribute("aria-label", `第 ${examMode || collectionMode ? index + 1 : questions[index].number} 题，${takingExam ? (state.selected.length ? "已作答" : "未作答") : status}`);
+    button.setAttribute("aria-label", `第 ${sequentialNumbers ? index + 1 : questions[index].number} 题，${takingExam ? (state.selected.length ? "已作答" : "未作答") : status}`);
   });
 }
 
@@ -282,6 +292,24 @@ function renderHint() {
   if (!dialog.open) dialog.showModal();
 }
 
+function renderSearchText(node, text) {
+  node.replaceChildren();
+  let offset = 0;
+  if (searchMode && normalizedKeyword) {
+    // 转义正则特殊字符，按字面匹配；使用原文索引，保留大小写与文字内容。
+    const pattern = new RegExp(searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    for (const match of text.matchAll(pattern)) {
+      node.append(document.createTextNode(text.slice(offset, match.index)));
+      const mark = document.createElement("mark");
+      mark.className = "search-highlight";
+      mark.textContent = match[0];
+      node.append(mark);
+      offset = match.index + match[0].length;
+    }
+  }
+  node.append(document.createTextNode(text.slice(offset)));
+}
+
 function renderQuestion() {
   clearQuestionTransition();
   renderExam();
@@ -293,8 +321,13 @@ function renderQuestion() {
   renderCollectionControls();
   renderHint();
   if (empty) {
-    $("empty-title").textContent = collectionMode === "mistakes" ? "还没有错题，继续保持！" : "还没有收藏的题目";
-    $("empty-description").textContent = collectionMode === "mistakes" ? "答错的题目会自动收录在这里，方便集中复习。" : "做题时点击星标，即可把想复习的题目收藏到这里。";
+    $("empty-title").textContent = searchMode ? "没有找到匹配的题目" : collectionMode === "mistakes" ? "还没有错题，继续保持！" : "还没有收藏的题目";
+    $("empty-description").textContent = searchMode ? "试试更短的关键词，题干和所有选项都会参与搜索。" : collectionMode === "mistakes" ? "答错的题目会自动收录在这里，方便集中复习。" : "做题时点击星标，即可把想复习的题目收藏到这里。";
+    if (searchMode) {
+      const link = $("empty-collection").querySelector("a");
+      link.href = practiceReturn;
+      link.replaceChildren(document.createTextNode("返回首页重新搜索"), window.radioIcon("back"));
+    }
     renderProgress();
     return;
   }
@@ -306,12 +339,12 @@ function renderQuestion() {
   const question = questions[currentIndex];
   const state = states[currentIndex];
   const multiple = question.answers.length > 1;
-  $("question-number").textContent = `第 ${String(examMode || collectionMode ? currentIndex + 1 : question.number).padStart(3, "0")} 题`;
+  $("question-number").textContent = `第 ${String(sequentialNumbers ? currentIndex + 1 : question.number).padStart(3, "0")} 题`;
   $("question-type").textContent = multiple ? "多选题" : "单选题";
-  $("question-title").textContent = question.question;
+  renderSearchText($("question-title"), question.question);
   $("selection-hint").textContent = examMode && !exam.submittedAt ? (multiple ? "请选择所有正确选项，可修改答案，交卷后统一判分。" : "请选择一个正确选项，可修改答案，交卷后统一判分。") : multiple ? "请选择所有正确选项，按回车或点击「提交答案」。" : "请选择一个正确选项，点击后自动提交。";
   if (examMode && exam.submittedAt) $("selection-hint").textContent = "试卷已交卷，下面显示你的作答与正确选项。";
-  $("source-id").textContent = `${examMode || collectionMode ? `题库第 ${question.number} 题 · ` : ""}原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
+  $("source-id").textContent = `${sequentialNumbers ? `题库第 ${question.number} 题 · ` : ""}原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
   $("source-pages").textContent = `来源 PDF 第 ${question.source_pages.join("、")} 页`;
   const images = $("question-images");
   images.hidden = !question.image_files.length;
@@ -345,7 +378,7 @@ function renderQuestion() {
     letter.textContent = examMode ? String.fromCharCode(65 + index) : key;
     const content = document.createElement("span");
     content.className = "option-text";
-    content.textContent = text;
+    renderSearchText(content, text);
     const input = document.createElement("input");
     input.type = multiple ? "checkbox" : "radio";
     input.name = "answer";
@@ -485,18 +518,18 @@ function buildNavigation() {
   questions.forEach((question, index) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = examMode || collectionMode ? index + 1 : question.number;
+    button.textContent = sequentialNumbers ? index + 1 : question.number;
     button.dataset.questionNumber = question.number;
     button.addEventListener("click", () => goToQuestion(index));
     navButtons.push(button);
     $("question-nav").append(button);
   });
   document.querySelectorAll("[data-total]").forEach((element) => { element.textContent = questions.length; });
-  $("jump-input").max = collectionMode || examMode ? questions.length : allQuestions.length;
+  $("jump-input").max = sequentialNumbers ? Math.max(1, questions.length) : allQuestions.length;
 }
 buildNavigation();
 $("jump-input").addEventListener("input", () => $("jump-input").setCustomValidity(""));
-$("practice-mode").textContent = collectionMode ? (collectionMode === "mistakes" ? "错题本" : "我的收藏") : examMode ? "模拟考试" : selectedGroup || selectedTopic || selectedDay ? "专题练习" : "顺序练习";
+$("practice-mode").textContent = searchMode ? "搜索练习" : collectionMode ? (collectionMode === "mistakes" ? "错题本" : "我的收藏") : examMode ? "模拟考试" : selectedGroup || selectedTopic || selectedDay ? "专题练习" : "顺序练习";
 document.title = `A 类题库 · ${$("practice-mode").textContent}`;
 document.querySelector("#practice-sidebar .section-heading h2").textContent = collectionMode ? $("practice-mode").textContent : "题目导航";
 $("practice-navigation-title").textContent = collectionMode ? `${$("practice-mode").textContent} · 题目导航` : "题目导航";
@@ -504,15 +537,15 @@ if (practiceTitle && !examMode) {
   $("practice-context").hidden = false;
   $("practice-context").textContent = practiceTitle;
 }
-if (collectionMode) {
-  $("jump-input").placeholder = collectionMode === "mistakes" ? "输入错题序号" : "输入收藏序号";
+if (searchMode || collectionMode) {
+  $("jump-input").placeholder = searchMode ? "输入搜索结果序号" : collectionMode === "mistakes" ? "输入错题序号" : "输入收藏序号";
   document.querySelector('label[for="jump-input"]').textContent = `跳转到${$("practice-mode").textContent}序号`;
   $("question-nav").setAttribute("aria-label", `按${$("practice-mode").textContent}序号选择题目`);
 }
 $("jump-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const number = Number($("jump-input").value);
-  const index = examMode || collectionMode ? number - 1 : questions.findIndex((question) => question.number === number);
+  const index = sequentialNumbers ? number - 1 : questions.findIndex((question) => question.number === number);
   if (index >= 0 && index < questions.length) {
     goToQuestion(index);
     $("jump-input").value = "";
@@ -552,8 +585,8 @@ $("toggle-hint").addEventListener("click", () => {
   renderHint();
 });
 $("hint-dialog").addEventListener("close", () => { if (!$("hint-dialog").open) hintQuestionId = null; });
-$("back-to-list").href = selectedGroup || selectedTopic || selectedDay ? practiceReturn : "index.html";
-$("back-to-list").setAttribute("aria-label", selectedGroup || selectedTopic || selectedDay ? "返回分类速记" : "返回首页");
+$("back-to-list").href = searchMode || selectedGroup || selectedTopic || selectedDay ? practiceReturn : "index.html";
+$("back-to-list").setAttribute("aria-label", searchMode ? "返回首页搜索" : selectedGroup || selectedTopic || selectedDay ? "返回分类速记" : "返回首页");
 $("back-to-list").title = $("back-to-list").getAttribute("aria-label");
 
 let swipeStart = null;
