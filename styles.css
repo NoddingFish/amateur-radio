@@ -234,6 +234,15 @@ html:has(.navigation-dialog[open]) { overflow: hidden; }
 #exam-status { flex: 1; min-width: 0; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .exam-result { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid #d6e0d1; font-size: 13px; line-height: 1.7; color: var(--green); }
 .exam-result.incorrect { color: var(--red); }
+.exam-mistakes { margin-top: 8px; max-width: 100%; }
+.exam-history { margin-bottom: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fffefa; font-size: 13px; }
+.exam-history summary { cursor: pointer; color: var(--green); }
+.exam-history p { color: var(--muted); line-height: 1.7; }
+.exam-history ol { max-height: 280px; overflow-y: auto; list-style: none; padding: 0; margin: 8px 0 0; }
+.exam-history li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.exam-history li > span { flex: 1; min-width: 0; color: var(--muted); line-height: 1.8; }
+.exam-history strong { display: block; font-weight: 500; color: var(--ink); }
+.exam-history a { flex-shrink: 0; text-decoration: none; }
 .exam-answered-legend { display: none !important; }
 .exam-taking .legend > span:nth-child(2), .exam-taking .legend > span:nth-child(3) { display: none; }
 .exam-taking .legend .exam-answered-legend { display: flex !important; }

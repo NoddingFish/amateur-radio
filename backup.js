@@ -32,7 +32,7 @@
     const practice = Object.keys(data.localStorage).filter((key) => key.startsWith("radio-a-practice-v1-")).length;
     const exam = Object.hasOwn(data.localStorage, "radio-a-exam-v1") ? 1 : 0;
     const search = Object.hasOwn(data.sessionStorage, "radio-a-search-v1") ? 1 : 0;
-    return `搜索 ${count(read("radio-a-search-history-v1"))} 条 · 错题 ${count(collections?.mistakes)} 题 · 收藏 ${count(collections?.favorites)} 题 · 已掌握 ${count(read("radio-a-mastered-groups-v1"))} 组 · 练习进度 ${practice} 份 · 考试 ${exam} 份 · 临时搜索 ${search} 份`;
+    return `搜索 ${count(read("radio-a-search-history-v1"))} 条 · 错题 ${count(collections?.mistakes)} 题 · 收藏 ${count(collections?.favorites)} 题 · 已掌握 ${count(read("radio-a-mastered-groups-v1"))} 组 · 练习进度 ${practice} 份 · 考试 ${exam} 份 · 考试记录 ${count(read("radio-a-exam-history-v1"))} 次 · 临时搜索 ${search} 份`;
   }
   function size(text) {
     const bytes = new Blob([text]).size;
@@ -61,6 +61,16 @@
     byId("import-preview").hidden = true;
   }
   function validateRecord(key, raw) {
+    if (key === "radio-a-exam-history-v1") {
+      const records = JSON.parse(raw);
+      if (!Array.isArray(records) || !records.every((record) => isObject(record) && typeof record.id === "string" && Array.isArray(record.questionNumbers) && record.questionNumbers.length === 40 && Number.isFinite(record.exam?.submittedAt) && Number.isFinite(record.exam?.deadline)) || new Set(records.map((record) => record.id)).size !== records.length) throw new Error("备份中的考试记录格式不正确，尚未修改本地数据。");
+      records.forEach((record) => {
+        validateRecord("radio-a-exam-v1", JSON.stringify(record));
+        const paper = record.questionNumbers.map((number) => window.QUESTION_BANK[number - 1]);
+        if (paper.filter((question) => question.answers.length === 1).length !== 32 || !paper.every((question) => isObject(record.states[question.id]))) throw new Error("备份中的考试试卷不完整，尚未修改本地数据。");
+      });
+      return;
+    }
     const arrayKey = ["radio-a-search-history-v1", "radio-a-mastered-groups-v1"].includes(key);
     const practiceKey = key.startsWith("radio-a-practice-v1-") || ["radio-a-exam-v1", "radio-a-search-v1"].includes(key);
     if (!arrayKey && !practiceKey && key !== "radio-a-collections-v1") return;

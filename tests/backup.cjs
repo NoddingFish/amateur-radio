@@ -48,6 +48,11 @@ const { pathToFileURL } = require("node:url");
       Object.entries(exam.states).forEach(([id, state]) => { state.checked = false; state.optionOrder = Object.keys(bank.find((question) => question.id === id).options); });
       exam.exam = { deadline: Date.now() + 2_400_000, submittedAt: null, timedOut: false };
       save("radio-a-exam-v1", exam);
+      const archived = structuredClone(exam);
+      archived.id = "archived-exam";
+      archived.exam = { deadline: Date.now() - 1000, submittedAt: Date.now() - 1000, timedOut: true };
+      Object.values(archived.states).forEach((state) => { state.checked = true; });
+      save("radio-a-exam-history-v1", [archived]);
       save("radio-a-practice-settings-v1", { autoNext: false });
       localStorage.setItem("radio-a-future-setting", "保留未识别的旧版或未来设置");
       const matches = bank.filter((question) => [question.question, ...Object.values(question.options)].some((text) => text.includes("天线")));
@@ -65,6 +70,7 @@ const { pathToFileURL } = require("node:url");
     assert.deepEqual(data.localStorage, expected.localStorage);
     assert.deepEqual(data.sessionStorage, expected.sessionStorage);
     assert.match(await page.locator("#export-summary").innerText(), /搜索 2 条.*错题 1 题.*收藏 1 题.*已掌握 2 组.*练习进度 6 份.*考试 1 份.*临时搜索 1 份/);
+    assert.match(await page.locator("#export-summary").innerText(), /考试记录 1 次/);
     assert.match(await page.locator("#data-summary").innerText(), /KB/);
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#download-backup").click();
@@ -92,6 +98,10 @@ const { pathToFileURL } = require("node:url");
     assert.equal(await page.locator("#apply-backup").isEnabled(), true);
     assert.deepEqual(await storage(), beforeImport);
     const invalid = ["{broken", JSON.stringify({ ...data, version: 99 }), JSON.stringify({ ...data, localStorage: { foreign: "value" } }), JSON.stringify({ ...data, localStorage: { "radio-a-collections-v1": JSON.stringify({ mistakes: "bad", favorites: [] }) } })];
+    const archived = JSON.parse(data.localStorage["radio-a-exam-history-v1"])[0];
+    for (const records of [{}, [null], [{ ...archived, states: {} }], [archived, archived]]) {
+      invalid.push(JSON.stringify({ ...data, localStorage: { "radio-a-exam-history-v1": JSON.stringify(records) } }));
+    }
     for (const value of invalid) {
       await page.locator("#import-text").fill(value);
       assert.equal(await page.locator("#apply-backup").isDisabled(), true);

@@ -16,6 +16,7 @@ const practiceKey = collectionMode || (selectedGroup ? `group-${selectedGroup.id
 const storageKey = searchMode ? "radio-a-search-v1" : examMode ? "radio-a-exam-v1" : `radio-a-practice-v1-${practiceKey}`;
 const sequentialNumbers = searchMode || examMode || collectionMode;
 const collectionsKey = "radio-a-collections-v1";
+const examHistoryKey = "radio-a-exam-history-v1";
 let storageAvailable = true;
 function readSaved(key) {
   try {
@@ -25,6 +26,13 @@ function readSaved(key) {
   }
 }
 let saved = readSaved(storageKey);
+const savedExamHistory = examMode ? readSaved(examHistoryKey) : null;
+const examHistory = Array.isArray(savedExamHistory) ? savedExamHistory.filter((record) => record && typeof record.id === "string" && Number.isFinite(record.exam?.deadline) && Number.isFinite(record.exam?.submittedAt)
+  && Array.isArray(record.questionNumbers) && record.questionNumbers.length === 40 && new Set(record.questionNumbers).size === 40
+  && record.questionNumbers.every((number) => Number.isInteger(number) && allQuestions[number - 1] && Array.isArray(record.states?.[allQuestions[number - 1].id]?.selected))
+  && record.questionNumbers.filter((number) => allQuestions[number - 1].answers.length === 1).length === 32) : [];
+const reviewRecord = examMode && examHistory.find((record) => record.id === params.get("record") && record.exam?.submittedAt);
+if (reviewRecord) saved = reviewRecord;
 if (searchMode && saved?.searchKeyword !== searchKeyword) saved = null;
 const savedCollections = readSaved(collectionsKey);
 const validIds = new Set(allQuestions.map((question) => question.id));
@@ -132,7 +140,8 @@ function renderExam() {
   $("start-exam").hidden = Boolean(exam.deadline);
   $("submit-exam").hidden = !exam.deadline || submitted;
   $("new-exam").hidden = !submitted;
-  $("exam-status").textContent = submitted ? (exam.timedOut ? "时间到，已自动交卷" : "已交卷 · 可切题查看答案") : exam.deadline ? "考试进行中 · 答案可随时修改" : "准备好后开始，计时期间可切换题目";
+  $("new-exam").textContent = reviewRecord ? "返回当前考试" : "重新组卷";
+  $("exam-status").textContent = reviewRecord ? `考试记录 · ${new Date(exam.submittedAt).toLocaleString("zh-CN")}` : submitted ? (exam.timedOut ? "时间到，已自动交卷" : "已交卷 · 可切题查看答案") : exam.deadline ? "考试进行中 · 答案可随时修改" : "准备好后开始，计时期间可切换题目";
   $("exam-result").hidden = !submitted;
   $("jump-input").disabled = !exam.deadline;
   $("jump-form").querySelector("button").disabled = !exam.deadline;
@@ -142,47 +151,104 @@ function renderExam() {
     $("exam-result").textContent = `成绩：${correct} / 40 · ${correct >= 30 ? "合格" : "未合格"} · 错题 ${40 - correct} 题（含未答 ${unanswered} 题）`;
     $("exam-result").classList.toggle("incorrect", correct < 30);
   }
+  renderExamMistakes();
+}
+
+function renderExamMistakes() {
+  if (!examMode) return;
+  const mistakes = exam.submittedAt ? questions.filter((question, index) => !isCorrect(question, states[index].selected)) : [];
+  const pending = mistakes.filter((question) => !collections.mistakes.has(question.id)).length;
+  $("add-exam-mistakes").hidden = !mistakes.length;
+  $("add-exam-mistakes").disabled = !pending;
+  $("add-exam-mistakes").textContent = pending ? `一键加入错题本（${pending} 题）` : "本次错题已全部加入错题本";
+}
+
+function renderExamHistory() {
+  $("exam-history").hidden = !examMode;
+  if (!examMode) return;
+  $("exam-history-count").textContent = examHistory.length;
+  $("exam-history-empty").hidden = Boolean(examHistory.length);
+  $("exam-history-list").replaceChildren();
+  [...examHistory].sort((a, b) => b.exam.submittedAt - a.exam.submittedAt).forEach((record) => {
+    const correct = record.questionNumbers.filter((number) => {
+      const question = allQuestions[number - 1];
+      return isCorrect(question, record.states[question.id].selected);
+    }).length;
+    const elapsed = Math.min(40 * 60, Math.max(0, Math.round((record.exam.submittedAt - (record.exam.deadline - 40 * 60 * 1000)) / 1000)));
+    const item = document.createElement("li");
+    const text = document.createElement("span");
+    const date = document.createElement("span");
+    date.textContent = new Date(record.exam.submittedAt).toLocaleString("zh-CN");
+    const score = document.createElement("strong");
+    score.textContent = `${correct} / 40 · ${correct >= 30 ? "合格" : "未合格"}`;
+    const duration = document.createElement("span");
+    duration.textContent = `用时 ${Math.floor(elapsed / 60)} 分 ${elapsed % 60} 秒${record.exam.timedOut ? " · 自动交卷" : ""}`;
+    text.append(date, score, duration);
+    const link = document.createElement("a");
+    link.className = "secondary-button";
+    link.href = `practice.html?exam=1&record=${encodeURIComponent(record.id)}`;
+    link.textContent = "查看试卷";
+    link.setAttribute("aria-label", `查看 ${date.textContent} 的试卷`);
+    if (reviewRecord?.id === record.id) link.setAttribute("aria-current", "page");
+    item.append(text, link);
+    $("exam-history-list").append(item);
+  });
+}
+
+function archiveExam() {
+  if (!examMode || reviewRecord || !exam.submittedAt) return;
+  const id = `${exam.deadline}-${exam.submittedAt}`;
+  if (!examHistory.some((record) => record.id === id)) {
+    examHistory.unshift(structuredClone({ id, ...progressRecord() }));
+    writeSaved(examHistoryKey, examHistory);
+  }
+  renderExamHistory();
 }
 
 function finishExam(timedOut = false) {
   if (!examMode || !exam.deadline || exam.submittedAt) return;
   exam.timedOut = timedOut || Date.now() >= exam.deadline;
   exam.submittedAt = Math.min(Date.now(), exam.deadline);
-  states.forEach((state, index) => {
-    state.checked = true;
-    if (!isCorrect(questions[index], state.selected)) collections.mistakes.add(questions[index].id);
-  });
+  states.forEach((state) => { state.checked = true; });
   if ($("practice-navigation").open) $("practice-navigation").close();
-  saveCollections();
   saveProgress();
+  archiveExam();
   renderQuestion();
   updateExamClock();
   $("exam-result").focus();
 }
 
 function writeSaved(key, value) {
+  let written = false;
   try {
     (searchMode && key === storageKey ? sessionStorage : localStorage).setItem(key, JSON.stringify(value));
-    storageAvailable = true;
+    written = true;
   } catch {
     storageAvailable = false;
   }
   $("save-status").textContent = storageAvailable ? (searchMode ? "作答与位置仅在当前标签页临时保存，刷新可继续；错题与收藏保存在当前浏览器。" : "作答、当前位置、错题与收藏已自动保存在当前浏览器。") : "当前浏览器无法保存记录，刷新后可能丢失本次作答、错题或收藏。";
+  return written;
 }
 
-function saveProgress() {
-  writeSaved(storageKey, {
+function progressRecord() {
+  return {
     questionNumbers: questions.map((question) => question.number),
     currentQuestion: questions[currentIndex]?.number || null,
     states: Object.fromEntries(questions.map((question, index) => [question.id, states[index]])),
     ...(examMode ? { exam } : {}),
     ...(searchMode ? { searchKeyword } : {}),
-  });
+  };
+}
+
+function saveProgress() {
+  if (!reviewRecord) writeSaved(storageKey, progressRecord());
 }
 
 function saveCollections() {
-  writeSaved(collectionsKey, Object.fromEntries(Object.entries(collections).map(([name, ids]) => [name, [...ids]])));
+  const written = writeSaved(collectionsKey, Object.fromEntries(Object.entries(collections).map(([name, ids]) => [name, [...ids]])));
   renderCollectionControls();
+  renderExamMistakes();
+  return written;
 }
 
 function renderCollectionControls() {
@@ -681,6 +747,7 @@ if (examMode) {
     finishExam();
   });
   $("new-exam").addEventListener("click", () => {
+    if (reviewRecord) { location.href = "practice.html?exam=1"; return; }
     questions = createExamQuestions();
     states.splice(0, states.length, ...questions.map((question) => ({ selected: [], checked: false, optionOrder: shuffle(Object.keys(question.options)) })));
     exam = { deadline: null, submittedAt: null, timedOut: false };
@@ -691,6 +758,18 @@ if (examMode) {
     renderQuestion();
     updateExamClock();
   });
+  $("add-exam-mistakes").addEventListener("click", () => {
+    if (!exam.submittedAt) return;
+    const previous = new Set(collections.mistakes);
+    questions.forEach((question, index) => {
+      if (!isCorrect(question, states[index].selected)) collections.mistakes.add(question.id);
+    });
+    if (!saveCollections()) {
+      collections.mistakes = previous;
+      renderCollectionControls();
+      renderExamMistakes();
+    }
+  });
   setInterval(updateExamClock, 1000);
   document.addEventListener("visibilitychange", updateExamClock);
 }
@@ -699,4 +778,6 @@ saveCollections();
 saveProgress();
 if (searchMode && searchKeyword && !window.radioSearchHistory.add(searchKeyword)) $("save-status").textContent += "当前浏览器无法保存搜索记录。";
 if (examMode) updateExamClock();
+archiveExam();
+renderExamHistory();
 window.addEventListener("pageshow", () => { if (examMode) updateExamClock(); });

@@ -48,7 +48,13 @@
       <section id="exam-panel" class="exam-panel" aria-label="模拟考试控制" hidden>
         <div class="exam-toolbar"><div class="exam-clock"><span>剩余时间</span><strong id="exam-timer" role="timer" aria-label="剩余考试时间">40:00</strong></div><p id="exam-status"></p><button id="start-exam" class="primary-button" type="button">开始考试</button><button id="submit-exam" class="primary-button" type="button" hidden>交卷</button><button id="new-exam" class="secondary-button" type="button" hidden>重新组卷</button></div>
         <p id="exam-result" class="exam-result" role="status" tabindex="-1" hidden></p>
+        <button id="add-exam-mistakes" class="secondary-button exam-mistakes" type="button" hidden>一键加入错题本</button>
       </section>
+      <details id="exam-history" class="exam-history" hidden>
+        <summary>考试记录（<span id="exam-history-count">0</span> 次）</summary>
+        <p id="exam-history-empty">还没有考试记录，交卷后会自动保存，可随时查看试卷和作答。</p>
+        <ol id="exam-history-list"></ol>
+      </details>
       <div id="empty-collection" class="empty-collection" tabindex="-1" hidden><h2 id="empty-title"></h2><p id="empty-description"></p><a href="practice.html" class="secondary-button">去做题 <span data-icon="next"></span></a></div>
       <div id="question-stage" class="question-stage">
       <article id="question-card" class="question-card" aria-labelledby="question-title">
