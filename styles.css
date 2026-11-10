@@ -17,6 +17,11 @@
 *::-webkit-scrollbar-thumb { border-radius: 10px; background: #bccbbd; }
 *::-webkit-scrollbar-thumb:hover { background: #8fa992; }
 body { margin: 0; }
+@media (pointer: coarse) { html { touch-action: pan-x pan-y; } }
+@view-transition { navigation: auto; }
+::view-transition-group(root), ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-old(root) { display: none; }
+::view-transition-new(root) { mix-blend-mode: normal; }
 button, input { font: inherit; }
 button, a, input, label { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -241,6 +246,7 @@ html:has(.navigation-dialog[open]) { overflow: hidden; }
   .practice-page:has(#exam-panel:not([hidden])) .question-card { scroll-margin-top: 105px; }
 }
 @media (min-width: 761px) {
+  :root { scrollbar-gutter: stable both-edges; }
   .practice-page, .study-page { height: 100dvh; display: grid; grid-template-rows: 64px minmax(0, 1fr) auto; }
   .site-header { gap: 20px; }
   .brand { font-size: 16px; }
@@ -441,7 +447,7 @@ html:has(.data-dialog[open]) { overflow: hidden; }
 .home-dashboard .stats strong { font-size: 24px; }
 .mastery-note { margin: 0; font-size: 12px; line-height: 1.9; color: #7c8d76; }
 @media (max-width: 760px) {
-  .practice-page .workspace > main { touch-action: pan-y pinch-zoom; }
+  .practice-page .workspace > main { touch-action: pan-y; }
   .swipe-hint { display: block; margin-bottom: 4px; color: #6e8770; }
   .back-to-list { min-height: 36px; }
   .hint-dialog { padding: 16px; max-height: calc(100dvh - 24px); }

@@ -1,5 +1,11 @@
 "use strict";
 
+if (window.matchMedia("(pointer: coarse)").matches) {
+  ["gesturestart", "gesturechange"].forEach((type) => {
+    document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+  });
+}
+
 document.querySelectorAll("[data-open-dialog]").forEach((button) => {
   button.addEventListener("click", () => {
     const dialog = document.getElementById(button.dataset.openDialog);

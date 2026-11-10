@@ -173,4 +173,5 @@
     location.reload();
   });
   refreshExport();
+  window.addEventListener("pageshow", (event) => { if (event.persisted) refreshExport(); });
 })();
