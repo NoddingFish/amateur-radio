@@ -11,6 +11,7 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
   const byId = (id) => document.getElementById(id);
   const searchInput = byId("search-input");
   const searchForm = byId("search-form");
+  const searchToggle = byId("toggle-search");
   const historyPanel = byId("search-history");
   let showAllHistory = false;
   function positionHistory() {
@@ -19,13 +20,13 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
     const viewport = window.visualViewport;
     const top = viewport?.offsetTop || 0;
     const left = viewport?.offsetLeft || 0;
-    const width = Math.min(560, (viewport?.width || innerWidth) - 24);
+    const width = Math.min(320, (viewport?.width || innerWidth) - 24);
     const below = top + (viewport?.height || innerHeight) - rect.bottom - 12;
     const above = rect.top - top - 12;
     const openBelow = below >= 160 || below >= above;
     historyPanel.style.width = `${width}px`;
-    historyPanel.style.left = `${Math.max(left + 12, Math.min(rect.left, left + (viewport?.width || innerWidth) - width - 12))}px`;
-    historyPanel.style.maxHeight = `${Math.max(0, Math.min(340, openBelow ? below : above))}px`;
+    historyPanel.style.left = `${Math.max(left + 12, Math.min(searchForm.getBoundingClientRect().right - width, left + (viewport?.width || innerWidth) - width - 12))}px`;
+    historyPanel.style.maxHeight = `${Math.max(0, Math.min(240, openBelow ? below : above))}px`;
     historyPanel.style.top = `${Math.max(top + 6, openBelow ? rect.bottom + 6 : rect.top - historyPanel.getBoundingClientRect().height - 6)}px`;
   }
   function saveHistory(records) {
@@ -66,6 +67,18 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
     historyPanel.hidden = true;
     searchInput.setAttribute("aria-expanded", "false");
   }
+  function setSearchOpen(open) {
+    searchForm.classList.toggle("search-open", open);
+    byId("search-controls").inert = !open;
+    searchToggle.setAttribute("aria-expanded", String(open));
+    searchToggle.setAttribute("aria-label", open ? "收起搜索" : "展开搜索");
+    searchToggle.title = open ? "收起搜索" : "展开搜索";
+    searchToggle.replaceChildren(window.radioIcon(open ? "close" : "search"));
+    if (open) searchInput.focus();
+    else closeHistory();
+  }
+  searchToggle.addEventListener("click", () => setSearchOpen(!searchForm.classList.contains("search-open")));
+  searchForm.addEventListener("transitionend", (event) => { if (event.propertyName === "width") positionHistory(); });
   searchInput.addEventListener("focus", openHistory);
   searchInput.addEventListener("click", openHistory);
   byId("history-toggle").addEventListener("click", () => { showAllHistory = !showAllHistory; renderHistory(); });
@@ -75,11 +88,16 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
   window.addEventListener("scroll", positionHistory, true);
   window.visualViewport?.addEventListener("resize", positionHistory);
   window.visualViewport?.addEventListener("scroll", positionHistory);
-  document.addEventListener("pointerdown", (event) => { if (!searchForm.contains(event.target)) closeHistory(); });
-  searchForm.addEventListener("focusout", (event) => { if (event.relatedTarget && !searchForm.contains(event.relatedTarget)) closeHistory(); });
+  document.addEventListener("pointerdown", (event) => { if (!searchForm.contains(event.target)) setSearchOpen(false); });
+  searchForm.addEventListener("focusout", (event) => { if (event.relatedTarget && !searchForm.contains(event.relatedTarget)) setSearchOpen(false); });
   searchForm.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") { event.preventDefault(); searchInput.focus(); closeHistory(); }
+    if (event.key === "Escape") { event.preventDefault(); setSearchOpen(false); searchToggle.focus(); }
   });
+  function openSearchFromHash() {
+    if (location.hash === "#search-form") setSearchOpen(true);
+  }
+  window.addEventListener("hashchange", openSearchFromHash);
+  openSearchFromHash();
   searchInput.addEventListener("input", () => searchInput.setCustomValidity(""));
   searchForm.addEventListener("submit", (event) => {
     searchInput.value = searchInput.value.trim();
@@ -158,6 +176,7 @@ if (["mistakes", "favorites"].includes(params.get("collection")) || params.get("
   }
   if (groupsView) {
     const title = "分类速记";
+    byId("home-title").textContent = `A 类题库 · ${title}`;
     document.title = `A 类题库 · ${title}`;
     byId("library-title").textContent = title;
     const list = byId("library-list");

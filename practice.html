@@ -19,9 +19,8 @@
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="A 类题库首页">
       <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <span>无线电练习室<small>AMATEUR RADIO</small></span>
+      <div class="brand-text"><h1>A 类题库 · <span id="practice-mode">顺序练习</span></h1><span>无线电练习室</span></div>
     </a>
-    <div class="practice-header-context"><h1>A 类题库 · <span id="practice-mode">顺序练习</span></h1><p id="practice-context" class="practice-context" hidden></p></div>
     <a id="back-to-list" class="icon-action" href="index.html" aria-label="返回首页" title="返回首页"><span data-icon="back"></span></a>
   </header>
 
@@ -45,6 +44,7 @@
     </dialog>
 
     <main>
+      <p id="practice-context" class="practice-context" hidden></p>
       <section id="exam-panel" class="exam-panel" aria-label="模拟考试控制" hidden>
         <div class="exam-toolbar"><div class="exam-clock"><span>剩余时间</span><strong id="exam-timer" role="timer" aria-label="剩余考试时间">40:00</strong></div><p id="exam-status"></p><button id="start-exam" class="primary-button" type="button">开始考试</button><button id="submit-exam" class="primary-button" type="button" hidden>交卷</button><button id="new-exam" class="secondary-button" type="button" hidden>重新组卷</button></div>
         <p id="exam-result" class="exam-result" role="status" tabindex="-1" hidden></p>
@@ -52,7 +52,7 @@
       <div id="empty-collection" class="empty-collection" tabindex="-1" hidden><h2 id="empty-title"></h2><p id="empty-description"></p><a href="practice.html" class="secondary-button">去做题 <span data-icon="next"></span></a></div>
       <div id="question-stage" class="question-stage">
       <article id="question-card" class="question-card" aria-labelledby="question-title">
-        <div class="question-topline"><div class="question-label"><button id="open-question-navigation" class="icon-action" type="button" data-open-dialog="practice-navigation" aria-label="题目导航" title="题目导航" aria-haspopup="dialog" aria-controls="practice-navigation"><span data-icon="menu"></span></button><span id="question-number" class="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><div class="question-tools"><button id="toggle-hint" class="icon-action" type="button" aria-label="查看本题提示" title="查看本题提示" aria-haspopup="dialog" aria-controls="hint-dialog"><span data-icon="hint"></span></button><button id="toggle-favorite" class="icon-action favorite-action" type="button" aria-label="收藏本题" title="收藏本题" aria-pressed="false"><span id="favorite-icon" data-icon="star"></span></button></div></div>
+        <div class="question-topline"><div class="question-label"><button id="open-question-navigation" class="icon-action" type="button" data-open-dialog="practice-navigation" aria-label="题目导航" title="题目导航" aria-haspopup="dialog" aria-controls="practice-navigation"><span data-icon="menu"></span></button><span id="question-number" class="question-number">第 001 题</span><span id="question-type" class="type-badge">多选题</span></div><div class="question-tools"><button id="toggle-hint" class="icon-action" type="button" aria-label="查看本题提示" title="查看本题提示" aria-haspopup="dialog" aria-controls="hint-dialog"><span data-icon="hint"></span></button><button id="toggle-memorize" class="icon-action memorize-action" type="button" aria-label="开启背题模式" title="开启背题模式" aria-pressed="false"><span data-icon="eyeOff"></span></button><button id="toggle-favorite" class="icon-action favorite-action" type="button" aria-label="收藏本题" title="收藏本题" aria-pressed="false"><span id="favorite-icon" data-icon="star"></span></button></div></div>
         <h2 id="question-title" class="question-title" tabindex="-1"></h2>
         <p id="selection-hint" class="selection-hint"></p>
         <div id="question-images" class="question-images" hidden></div>

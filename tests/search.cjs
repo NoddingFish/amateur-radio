@@ -18,6 +18,7 @@ const { pathToFileURL } = require("node:url");
     fs.mkdirSync(path.join(__dirname, "../tmp/search"), { recursive: true });
 
     await page.goto(url("index.html"));
+    await page.locator("#toggle-search").click();
     await page.locator("#search-input").fill("   ");
     await page.locator('#search-form button[type="submit"]').click();
     assert.equal(new URL(page.url()).pathname.endsWith("index.html"), true, "空白关键词留在首页");
@@ -29,6 +30,7 @@ const { pathToFileURL } = require("node:url");
       if (width === 390) await page.screenshot({ path: path.join(__dirname, "../tmp/search/home-mobile.png"), fullPage: true });
     }
     await page.screenshot({ path: path.join(__dirname, "../tmp/search/home.png"), fullPage: true });
+    await page.locator("#toggle-search").click();
     await page.locator("#search-input").fill("  天线  ");
     await page.locator("#search-input").press("Enter");
     await page.waitForURL(/practice\.html\?search=/);

@@ -16,20 +16,24 @@
 </head>
 <body class="home-page">
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="A 类题库首页"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>无线电练习室<small>AMATEUR RADIO</small></span></a>
+    <a class="brand" href="index.html" aria-label="A 类题库首页"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m8 26 8-20 8 20M11 19h10M13.5 13h5M8 26h16M5 8a15 15 0 0 0 0 12M27 8a15 15 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="brand-text"><h1 id="home-title">A 类题库</h1><span>无线电练习室</span></div></a>
+    <form id="search-form" class="home-search" action="practice.html" method="get" role="search">
+      <div id="search-controls" class="search-controls" inert>
+        <label class="sr-only" for="search-input">搜索题目或选项</label>
+        <input id="search-input" name="search" type="search" placeholder="搜索题目或选项" aria-describedby="search-description" aria-controls="search-history" aria-haspopup="dialog" aria-expanded="false" autocomplete="off" required>
+        <button class="icon-action" type="submit" aria-label="搜索并做题" title="搜索并做题"><span data-icon="search"></span></button>
+      </div>
+      <button id="toggle-search" class="icon-action search-toggle" type="button" aria-label="展开搜索" title="展开搜索" aria-expanded="false" aria-controls="search-controls"><span data-icon="search"></span></button>
+      <p id="search-description" class="sr-only">匹配题干或任一选项，即加入临时题库；做题时高亮关键词。</p>
+      <section id="search-history" class="search-history" role="dialog" aria-labelledby="history-title" hidden>
+        <div class="history-heading"><strong id="history-title">最近搜索</strong><div><button id="history-toggle" class="text-button" type="button" hidden>全部记录</button><button id="history-clear" class="text-button" type="button" hidden>清空</button><button id="history-close" class="icon-action" type="button" aria-label="关闭搜索记录"><span data-icon="close"></span></button></div></div>
+        <ul id="history-list" class="history-list"></ul><p id="history-empty">暂无搜索记录</p>
+      </section>
+    </form>
   </header>
   <main class="library-main">
     <section id="home-panel" aria-labelledby="home-title">
-      <div class="home-heading"><p class="eyebrow">AMATEUR RADIO · CLASS A</p><h1 id="home-title">A 类题库</h1><p>从记住规则，到独立做对。</p><span>CRAC 2025 年版 · 683 道题 · 70 个记忆组</span></div>
-      <form id="search-form" class="home-search" action="practice.html" method="get" role="search">
-        <label for="search-input">搜索题目或选项</label>
-        <div class="search-controls"><input id="search-input" name="search" type="search" placeholder="输入关键词，如：天线、呼号、FM" aria-describedby="search-description" aria-controls="search-history" aria-haspopup="dialog" aria-expanded="false" autocomplete="off" required><button class="primary-button" type="submit">搜索并做题</button></div>
-        <p id="search-description">匹配题干或任一选项，即加入临时题库；做题时高亮关键词。</p>
-        <section id="search-history" class="search-history" role="dialog" aria-labelledby="history-title" hidden>
-          <div class="history-heading"><strong id="history-title">最近搜索</strong><div><button id="history-toggle" class="text-button" type="button" hidden>全部记录</button><button id="history-clear" class="text-button" type="button" hidden>清空</button><button id="history-close" class="icon-action" type="button" aria-label="关闭搜索记录"><span data-icon="close"></span></button></div></div>
-          <ul id="history-list" class="history-list"></ul><p id="history-empty">暂无搜索记录</p>
-        </section>
-      </form>
+      <div class="home-heading"><p>从记住规则，到独立做对。</p><span>CRAC 2025 年版 · 683 道题 · 70 个记忆组</span></div>
       <section class="home-dashboard" aria-label="学习进度">
         <section class="progress-card" aria-labelledby="practice-progress-title">
           <div class="dashboard-heading"><span class="dashboard-icon" data-icon="book"></span><h2 id="practice-progress-title">顺序练习进度</h2><strong id="progress-percent">0%</strong></div>

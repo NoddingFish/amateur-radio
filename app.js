@@ -45,6 +45,7 @@ if (!savedCollections) {
 }
 let autoNextTimer;
 let hintQuestionId = null;
+let memorizeMode = false;
 let questions = allQuestions;
 let practiceTitle = "";
 let practiceReturn = "study.html";
@@ -320,6 +321,11 @@ function renderQuestion() {
   $("empty-collection").hidden = !empty;
   renderCollectionControls();
   renderHint();
+  $("toggle-memorize").hidden = examMode;
+  $("toggle-memorize").setAttribute("aria-pressed", String(memorizeMode));
+  $("toggle-memorize").setAttribute("aria-label", memorizeMode ? "关闭背题模式" : "开启背题模式");
+  $("toggle-memorize").title = memorizeMode ? "关闭背题模式" : "开启背题模式";
+  $("toggle-memorize").replaceChildren(window.radioIcon(memorizeMode ? "eye" : "eyeOff"));
   if (empty) {
     $("empty-title").textContent = searchMode ? "没有找到匹配的题目" : collectionMode === "mistakes" ? "还没有错题，继续保持！" : "还没有收藏的题目";
     $("empty-description").textContent = searchMode ? "试试更短的关键词，题干和所有选项都会参与搜索。" : collectionMode === "mistakes" ? "答错的题目会自动收录在这里，方便集中复习。" : "做题时点击星标，即可把想复习的题目收藏到这里。";
@@ -350,6 +356,7 @@ function renderQuestion() {
   renderSearchText($("question-title"), question.question);
   $("selection-hint").textContent = examMode && !exam.submittedAt ? (multiple ? "请选择所有正确选项，可修改答案，交卷后统一判分。" : "请选择一个正确选项，可修改答案，交卷后统一判分。") : multiple ? "请选择所有正确选项，按回车或点击「提交答案」。" : "请选择一个正确选项，点击后自动提交。";
   if (examMode && exam.submittedAt) $("selection-hint").textContent = "试卷已交卷，下面显示你的作答与正确选项。";
+  if (memorizeMode) $("selection-hint").textContent = "背题模式已开启，正确答案已显示，使用上一题、下一题继续背题。";
   $("source-id").textContent = `${sequentialNumbers ? `题库第 ${question.number} 题 · ` : ""}原题号 ${question.legacy_ids.join(" / ")} · ${question.id}`;
   $("source-pages").textContent = `来源 PDF 第 ${question.source_pages.join("、")} 页`;
   const images = $("question-images");
@@ -389,8 +396,8 @@ function renderQuestion() {
     input.type = multiple ? "checkbox" : "radio";
     input.name = "answer";
     input.value = key;
-    input.checked = state.selected.includes(key);
-    input.disabled = state.checked;
+    input.checked = !memorizeMode && state.selected.includes(key);
+    input.disabled = memorizeMode || state.checked;
     input.addEventListener("change", () => {
       if (examMode) {
         if (exam.submittedAt || Date.now() >= exam.deadline) { finishExam(true); return; }
@@ -407,7 +414,7 @@ function renderQuestion() {
       else submitAnswer();
     });
     label.append(letter, content);
-    if (state.checked) {
+    if (memorizeMode || state.checked) {
       const correct = question.answers.includes(key);
       const wrong = input.checked && !correct;
       label.classList.toggle("is-correct", correct);
@@ -425,8 +432,11 @@ function renderQuestion() {
 
   const feedback = $("feedback");
   feedback.replaceChildren();
-  feedback.hidden = !state.checked;
-  if (state.checked) {
+  feedback.hidden = !memorizeMode && !state.checked;
+  if (memorizeMode) {
+    feedback.classList.remove("incorrect");
+    feedback.textContent = `正确答案：${question.answers.join("、")}。`;
+  } else if (state.checked) {
     const correct = isCorrect(question, state.selected);
     feedback.classList.toggle("incorrect", !correct);
     const title = document.createElement("strong");
@@ -439,7 +449,7 @@ function renderQuestion() {
   $("check-answer").disabled = state.checked || !state.selected.length;
   $("check-answer").firstChild.textContent = state.checked ? "已提交 " : "提交答案 ";
   $("retry-answer").hidden = examMode || !state.checked;
-  document.querySelector(".answer-actions").hidden = examMode;
+  document.querySelector(".answer-actions").hidden = examMode || memorizeMode;
   document.querySelector(".question-result").hidden = examMode && !exam.submittedAt;
   $("action-hint").textContent = state.checked ? "可重新作答，或继续下一题" : state.selected.length ? `已选 ${state.selected.join("、")}` : "选择选项后提交答案";
   $("previous-question").disabled = currentIndex === 0;
@@ -502,7 +512,7 @@ function goToQuestion(index) {
 }
 
 function submitAnswer() {
-  if (examMode) return;
+  if (examMode || memorizeMode) return;
   const state = states[currentIndex];
   if (!state.selected.length || state.checked) return;
   state.checked = true;
@@ -590,6 +600,12 @@ $("practice-similar").addEventListener("click", (event) => {
   window.alert("已经在同类练习中了。");
 });
 $("open-question-navigation").addEventListener("click", () => clearTimeout(autoNextTimer));
+$("toggle-memorize").addEventListener("click", () => {
+  if (examMode) return;
+  clearTimeout(autoNextTimer);
+  memorizeMode = !memorizeMode;
+  renderQuestion();
+});
 $("toggle-hint").addEventListener("click", () => {
   if (examMode && !exam.submittedAt) return;
   hintQuestionId = questions[currentIndex].id;
